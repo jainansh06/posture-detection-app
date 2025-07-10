@@ -5,6 +5,10 @@ import './App.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+// Add this right after the API_BASE_URL declaration
+console.log('Environment variables:', process.env);
+console.log('API_BASE_URL being used:', API_BASE_URL);
+
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [analysisType, setAnalysisType] = useState('image');
