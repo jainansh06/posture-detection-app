@@ -26,6 +26,21 @@ function App() {
     setError(null);
   };
 
+  const handleAnalysisTypeChange = (event) => {
+    const newAnalysisType = event.target.value;
+    setAnalysisType(newAnalysisType);
+    
+    // Clear selected file when switching analysis types
+    setSelectedFile(null);
+    setResults(null);
+    setError(null);
+    
+    // Clear the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const analyzeImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -84,6 +99,20 @@ function App() {
 
     if (!selectedFile) {
       setError('Please select a file first');
+      return;
+    }
+
+    // Validate file type matches analysis type
+    const isImage = selectedFile.type.startsWith('image/');
+    const isVideo = selectedFile.type.startsWith('video/');
+    
+    if (analysisType === 'image' && !isImage) {
+      setError('Please select an image file for image analysis');
+      return;
+    }
+    
+    if (analysisType === 'video' && !isVideo) {
+      setError('Please select a video file for video analysis');
       return;
     }
 
@@ -263,7 +292,7 @@ function App() {
                     type="radio"
                     value="image"
                     checked={analysisType === 'image'}
-                    onChange={(e) => setAnalysisType(e.target.value)}
+                    onChange={handleAnalysisTypeChange}
                   />
                   Image Analysis
                 </label>
@@ -272,7 +301,7 @@ function App() {
                     type="radio"
                     value="video"
                     checked={analysisType === 'video'}
-                    onChange={(e) => setAnalysisType(e.target.value)}
+                    onChange={handleAnalysisTypeChange}
                   />
                   Video Analysis
                 </label>
