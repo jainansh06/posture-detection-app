@@ -29,6 +29,11 @@ def calculate_angle(point1, point2, point3):
     angle = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
     return np.degrees(angle)
 
+@app.route("/")
+def home():
+    return "Flask backend is running correctly."
+
+
 @app.route('/analyze_pose', methods=['POST'])
 def analyze_pose():
     try:
