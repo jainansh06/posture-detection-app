@@ -14,9 +14,6 @@ app = Flask(__name__)
 CORS(app, origins=['https://posture-detection-ten.vercel.app'])
 
 
-console.log('Environment variables:', process.env);
-console.log('API_BASE_URL being used:', API_BASE_URL);
-
 # Initialize MediaPipe
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
