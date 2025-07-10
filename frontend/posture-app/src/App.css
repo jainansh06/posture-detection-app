@@ -65,6 +65,31 @@
   margin-right: 8px;
 }
 
+.posture-type-selector {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+}
+
+.posture-type-selector h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #495057;
+}
+
+.posture-type-selector label {
+  margin: 0 15px;
+  font-size: 15px;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.posture-type-selector input {
+  margin-right: 8px;
+}
+
 .file-upload {
   margin: 20px 0;
 }
@@ -157,6 +182,26 @@
   font-size: 22px;
 }
 
+.specified-posture {
+  background-color: #e3f2fd;
+  padding: 15px;
+  margin: 15px 0;
+  border: 1px solid #90caf9;
+  border-radius: 5px;
+}
+
+.specified-posture h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #1565c0;
+}
+
+.posture-type {
+  color: #0d47a1;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
 .posture-status h4 {
   margin-bottom: 15px;
   font-size: 18px;
@@ -174,9 +219,6 @@
 }
 
 .analysis-details {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
   margin-top: 20px;
 }
 
@@ -185,6 +227,8 @@
   padding: 20px;
   border: 1px solid #dee2e6;
   border-left: 4px solid #007bff;
+  width: 100%;
+  max-width: 600px;
 }
 
 .sitting-analysis h5, .squat-analysis h5 {
@@ -205,6 +249,30 @@
 .issues li {
   margin: 5px 0;
   color: #6c757d;
+}
+
+.recommendations {
+  background-color: #e8f5e8;
+  padding: 20px;
+  margin-top: 20px;
+  border: 1px solid #c3e6c3;
+  border-left: 4px solid #28a745;
+}
+
+.recommendations h4 {
+  margin-top: 0;
+  color: #155724;
+  font-size: 16px;
+}
+
+.recommendations ul {
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+.recommendations li {
+  margin: 5px 0;
+  color: #155724;
 }
 
 .video-summary {
@@ -258,11 +326,16 @@
   }
   
   .analysis-details {
-    grid-template-columns: 1fr;
+    margin-top: 20px;
   }
   
   .input-mode-selector label,
   .analysis-type-selector label {
+    display: block;
+    margin: 10px 0;
+  }
+  
+  .posture-type-selector label {
     display: block;
     margin: 10px 0;
   }
@@ -279,5 +352,9 @@
   
   .results-container {
     padding: 15px;
+  }
+  
+  .posture-type-selector {
+    padding: 10px;
   }
 }
