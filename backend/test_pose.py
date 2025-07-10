@@ -3,7 +3,7 @@ import json
 
 def test_with_image(image_path):
     # Use your actual deployed backend URL
-    url = 'http://13.53.126.177:5000/analyze_pose'
+    url = 'https://13.53.126.177:5000/analyze_pose'
     
     try:
         with open(image_path, 'rb') as f:
@@ -21,7 +21,7 @@ def test_with_image(image_path):
 def test_health():
     """Test if the deployed server is running"""
     try:
-        response = requests.get('http://13.53.126.177:5000/health')
+        response = requests.get('https://13.53.126.177:5000/health')
         print("Health check:", response.json())
         return True
     except Exception as e:
