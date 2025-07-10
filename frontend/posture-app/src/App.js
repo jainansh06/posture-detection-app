@@ -47,12 +47,17 @@ function App() {
   };
 
   const captureAndAnalyze = useCallback(async () => {
-    if (!webcamRef.current) return;
+    if (!webcamRef.current) {
+      setError('Webcam not available');
+      return;
+    }
+    
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) {
       setError('Failed to capture image from webcam');
       return;
     }
+    
     setLoading(true);
     setError(null);
     setResults(null);
@@ -64,7 +69,8 @@ function App() {
       const result = await analyzeImage(file);
       setResults(result);
     } catch (err) {
-      setError(err.response?.data?.error || 'Analysis failed');
+      console.error('Capture and analyze error:', err);
+      setError(err.response?.data?.error || err.message || 'Analysis failed');
     } finally {
       setLoading(false);
     }
@@ -94,7 +100,8 @@ function App() {
       }
       setResults(result);
     } catch (err) {
-      setError(err.response?.data?.error || 'Analysis failed');
+      console.error('Analysis error:', err);
+      setError(err.response?.data?.error || err.message || 'Analysis failed');
     } finally {
       setLoading(false);
     }
@@ -106,85 +113,117 @@ function App() {
     setError(null);
   };
 
-  const renderImageResults = (results) => (
-    <div className="results-container">
-      <h3>Analysis Results</h3>
-      <div className="posture-status">
-        <h4>Overall Posture:
-          <span className={results?.analysis?.overall_posture === 'good' ? 'good' : 'bad'}>
-            {results?.analysis?.overall_posture?.toUpperCase() || 'N/A'}
-          </span>
-        </h4>
-      </div>
+  const renderImageResults = (results) => {
+    if (!results || !results.analysis) {
+      return (
+        <div className="results-container">
+          <h3>Analysis Results</h3>
+          <p>No analysis data available</p>
+        </div>
+      );
+    }
 
-      <div className="analysis-details">
-        <div className="sitting-analysis">
-          <h5>Sitting Analysis</h5>
-          {results?.analysis?.sitting_analysis?.bad_posture ? (
-            <div className="issues">
-              <p>❌ Bad posture detected</p>
-              <ul>
-                {results?.analysis?.sitting_analysis?.problems?.map((problem, index) => (
-                  <li key={index}>{problem}</li>
-                ))}
-              </ul>
+    return (
+      <div className="results-container">
+        <h3>Analysis Results</h3>
+        <div className="posture-status">
+          <h4>Overall Posture:
+            <span className={results.analysis.overall_posture === 'good' ? 'good' : 'bad'}>
+              {results.analysis.overall_posture?.toUpperCase() || 'N/A'}
+            </span>
+          </h4>
+        </div>
+
+        <div className="analysis-details">
+          {results.analysis.sitting_analysis && (
+            <div className="sitting-analysis">
+              <h5>Sitting Analysis</h5>
+              {results.analysis.sitting_analysis.bad_posture ? (
+                <div className="issues">
+                  <p>❌ Bad posture detected</p>
+                  {results.analysis.sitting_analysis.problems && results.analysis.sitting_analysis.problems.length > 0 && (
+                    <ul>
+                      {results.analysis.sitting_analysis.problems.map((problem, index) => (
+                        <li key={index}>{problem}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : (
+                <p>✅ Good sitting posture</p>
+              )}
             </div>
-          ) : (
-            <p>✅ Good sitting posture</p>
+          )}
+
+          {results.analysis.squat_analysis && (
+            <div className="squat-analysis">
+              <h5>Squat Analysis</h5>
+              {results.analysis.squat_analysis.bad_posture ? (
+                <div className="issues">
+                  <p>❌ Bad posture detected</p>
+                  {results.analysis.squat_analysis.problems && results.analysis.squat_analysis.problems.length > 0 && (
+                    <ul>
+                      {results.analysis.squat_analysis.problems.map((problem, index) => (
+                        <li key={index}>{problem}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : (
+                <p>✅ Good squat posture</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderVideoResults = (results) => {
+    if (!results) {
+      return (
+        <div className="results-container">
+          <h3>Video Analysis Results</h3>
+          <p>No analysis data available</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="results-container">
+        <h3>Video Analysis Results</h3>
+        <div className="video-summary">
+          <h4>Summary</h4>
+          <p>Total Frames: {results.total_frames ?? 'N/A'}</p>
+          <p>Analyzed Frames: {results.analyzed_frames ?? 'N/A'}</p>
+          <p>
+            Bad Posture: 
+            {typeof results.bad_posture_percentage === 'number'
+              ? ` ${results.bad_posture_percentage.toFixed(1)}%`
+              : ' N/A'}
+          </p>
+          {results.summary && (
+            <p>Overall Rating:
+              <span className={results.summary.overall_rating === 'good' ? 'good' : 'bad'}>
+                {results.summary.overall_rating?.toUpperCase() || 'N/A'}
+              </span>
+            </p>
           )}
         </div>
 
-        <div className="squat-analysis">
-          <h5>Squat Analysis</h5>
-          {results?.analysis?.squat_analysis?.bad_posture ? (
-            <div className="issues">
-              <p>❌ Bad posture detected</p>
-              <ul>
-                {results?.analysis?.squat_analysis?.problems?.map((problem, index) => (
-                  <li key={index}>{problem}</li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p>✅ Good squat posture</p>
-          )}
-        </div>
+        {results.summary && results.summary.main_issues && results.summary.main_issues.length > 0 && (
+          <div className="main-issues">
+            <h4>Main Issues Found</h4>
+            <ul>
+              {results.summary.main_issues.map(([issue, count], index) => (
+                <li key={index}>{issue} (occurred {count} times)</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
-    </div>
-  );
-
-  const renderVideoResults = (results) => (
-    <div className="results-container">
-      <h3>Video Analysis Results</h3>
-      <div className="video-summary">
-        <h4>Summary</h4>
-        <p>Total Frames: {results?.total_frames ?? 'Loading...'}</p>
-        <p>Analyzed Frames: {results?.analyzed_frames ?? 'Loading...'}</p>
-        <p>
-          Bad Posture: 
-          {typeof results?.bad_posture_percentage === 'number'
-            ? ` ${results.bad_posture_percentage.toFixed(1)}%`
-            : ' Loading...'}
-        </p>
-        <p>Overall Rating:
-          <span className={results?.summary?.overall_rating === 'good' ? 'good' : 'bad'}>
-            {results?.summary?.overall_rating?.toUpperCase() || 'N/A'}
-          </span>
-        </p>
-      </div>
-
-      {results?.summary?.main_issues?.length > 0 && (
-        <div className="main-issues">
-          <h4>Main Issues Found</h4>
-          <ul>
-            {results.summary.main_issues.map(([issue, count], index) => (
-              <li key={index}>{issue} (occurred {count} times)</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="App">
