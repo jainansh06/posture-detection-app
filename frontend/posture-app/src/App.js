@@ -5,14 +5,13 @@ import './App.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-// Add this right after the API_BASE_URL declaration
 console.log('Environment variables:', process.env);
 console.log('API_BASE_URL being used:', API_BASE_URL);
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [analysisType, setAnalysisType] = useState('image');
-  const [inputMode, setInputMode] = useState('upload'); // 'upload' or 'webcam'
+  const [inputMode, setInputMode] = useState('upload'); 
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,11 +31,8 @@ function App() {
     formData.append('image', file);
 
     const response = await axios.post(`${API_BASE_URL}/analyze_pose`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
-
     return response.data;
   };
 
@@ -45,35 +41,26 @@ function App() {
     formData.append('video', file);
 
     const response = await axios.post(`${API_BASE_URL}/analyze_video`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
-
     return response.data;
   };
 
   const captureAndAnalyze = useCallback(async () => {
     if (!webcamRef.current) return;
-
     const imageSrc = webcamRef.current.getScreenshot();
-    
     if (!imageSrc) {
       setError('Failed to capture image from webcam');
       return;
     }
-
     setLoading(true);
     setError(null);
+    setResults(null);
 
     try {
-      // Convert base64 to blob
       const response = await fetch(imageSrc);
       const blob = await response.blob();
-      
-      // Create a File object
       const file = new File([blob], 'webcam-capture.jpg', { type: 'image/jpeg' });
-      
       const result = await analyzeImage(file);
       setResults(result);
     } catch (err) {
@@ -96,6 +83,7 @@ function App() {
 
     setLoading(true);
     setError(null);
+    setResults(null);
 
     try {
       let result;
@@ -104,7 +92,6 @@ function App() {
       } else {
         result = await analyzeVideo(selectedFile);
       }
-      
       setResults(result);
     } catch (err) {
       setError(err.response?.data?.error || 'Analysis failed');
@@ -122,11 +109,10 @@ function App() {
   const renderImageResults = (results) => (
     <div className="results-container">
       <h3>Analysis Results</h3>
-      
       <div className="posture-status">
-        <h4>Overall Posture: 
-          <span className={results.analysis.overall_posture === 'good' ? 'good' : 'bad'}>
-            {results.analysis.overall_posture.toUpperCase()}
+        <h4>Overall Posture:
+          <span className={results?.analysis?.overall_posture === 'good' ? 'good' : 'bad'}>
+            {results?.analysis?.overall_posture?.toUpperCase() || 'N/A'}
           </span>
         </h4>
       </div>
@@ -134,11 +120,11 @@ function App() {
       <div className="analysis-details">
         <div className="sitting-analysis">
           <h5>Sitting Analysis</h5>
-          {results.analysis.sitting_analysis.bad_posture ? (
+          {results?.analysis?.sitting_analysis?.bad_posture ? (
             <div className="issues">
               <p>❌ Bad posture detected</p>
               <ul>
-                {results.analysis.sitting_analysis.problems.map((problem, index) => (
+                {results?.analysis?.sitting_analysis?.problems?.map((problem, index) => (
                   <li key={index}>{problem}</li>
                 ))}
               </ul>
@@ -150,11 +136,11 @@ function App() {
 
         <div className="squat-analysis">
           <h5>Squat Analysis</h5>
-          {results.analysis.squat_analysis.bad_posture ? (
+          {results?.analysis?.squat_analysis?.bad_posture ? (
             <div className="issues">
               <p>❌ Bad posture detected</p>
               <ul>
-                {results.analysis.squat_analysis.problems.map((problem, index) => (
+                {results?.analysis?.squat_analysis?.problems?.map((problem, index) => (
                   <li key={index}>{problem}</li>
                 ))}
               </ul>
@@ -170,20 +156,24 @@ function App() {
   const renderVideoResults = (results) => (
     <div className="results-container">
       <h3>Video Analysis Results</h3>
-      
       <div className="video-summary">
         <h4>Summary</h4>
-        <p>Total Frames: {results.total_frames}</p>
-        <p>Analyzed Frames: {results.analyzed_frames}</p>
-        <p>Bad Posture: {results.bad_posture_percentage.toFixed(1)}%</p>
-        <p>Overall Rating: 
-          <span className={results.summary.overall_rating === 'good' ? 'good' : 'bad'}>
-            {results.summary.overall_rating.toUpperCase()}
+        <p>Total Frames: {results?.total_frames ?? 'Loading...'}</p>
+        <p>Analyzed Frames: {results?.analyzed_frames ?? 'Loading...'}</p>
+        <p>
+          Bad Posture: 
+          {typeof results?.bad_posture_percentage === 'number'
+            ? ` ${results.bad_posture_percentage.toFixed(1)}%`
+            : ' Loading...'}
+        </p>
+        <p>Overall Rating:
+          <span className={results?.summary?.overall_rating === 'good' ? 'good' : 'bad'}>
+            {results?.summary?.overall_rating?.toUpperCase() || 'N/A'}
           </span>
         </p>
       </div>
 
-      {results.summary.main_issues.length > 0 && (
+      {results?.summary?.main_issues?.length > 0 && (
         <div className="main-issues">
           <h4>Main Issues Found</h4>
           <ul>
@@ -270,10 +260,7 @@ function App() {
 
           {inputMode === 'webcam' && (
             <div className="webcam-section">
-              <button
-                onClick={toggleWebcam}
-                className="webcam-toggle-button"
-              >
+              <button onClick={toggleWebcam} className="webcam-toggle-button">
                 {webcamActive ? 'Stop Webcam' : 'Start Webcam'}
               </button>
 
