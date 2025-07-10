@@ -41,6 +41,8 @@ def analyze_pose():
             return jsonify({'error': 'No image provided'}), 400
 
         file = request.files['image']
+        posture_type = request.form.get('posture_type')  # 'sitting' or 'squat'
+        
         image = Image.open(file.stream)
         image_rgb = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
@@ -50,7 +52,23 @@ def analyze_pose():
 
         landmarks = results.pose_landmarks.landmark
         key_points = extract_key_points(landmarks)
-        analysis = analyze_posture(key_points)
+        
+        # Analyze based on specified posture type
+        if posture_type == 'sitting':
+            sitting_analysis = analyze_sitting(key_points)
+            analysis = {
+                'overall_posture': 'bad' if sitting_analysis.get('bad_posture', False) else 'good',
+                'sitting_analysis': sitting_analysis
+            }
+        elif posture_type == 'squat':
+            squat_analysis = analyze_squat(key_points)
+            analysis = {
+                'overall_posture': 'bad' if squat_analysis.get('bad_posture', False) else 'good',
+                'squat_analysis': squat_analysis
+            }
+        else:
+            # If no posture type specified, use automatic detection (your existing logic)
+            analysis = analyze_posture(key_points)
 
         return jsonify({
             'success': True,
