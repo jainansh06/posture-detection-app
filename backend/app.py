@@ -11,7 +11,7 @@ import os
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-CORS(app, origins=['https://posture-detection-ten.vercel.app'])
+CORS(app, origins=['https://posture-detection-app-dun.vercel.app/'])
 
 
 # Initialize MediaPipe
