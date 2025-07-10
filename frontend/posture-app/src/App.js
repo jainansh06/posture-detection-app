@@ -3,7 +3,7 @@ import Webcam from 'react-webcam';
 import axios from 'axios';
 import './App.css';
 
-const API_BASE_URL = 'http://13.53.126.177:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
