@@ -11,7 +11,8 @@ console.log('API_BASE_URL being used:', API_BASE_URL);
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [analysisType, setAnalysisType] = useState('image');
-  const [inputMode, setInputMode] = useState('upload'); 
+  const [inputMode, setInputMode] = useState('upload');
+  const [postureType, setPostureType] = useState('sitting'); // New state for posture type
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -41,9 +42,16 @@ function App() {
     }
   };
 
+  const handlePostureTypeChange = (event) => {
+    setPostureType(event.target.value);
+    setResults(null);
+    setError(null);
+  };
+
   const analyzeImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('posture_type', postureType);
 
     const response = await axios.post(`${API_BASE_URL}/analyze_pose`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -54,6 +62,7 @@ function App() {
   const analyzeVideo = async (file) => {
     const formData = new FormData();
     formData.append('video', file);
+    formData.append('posture_type', postureType);
 
     const response = await axios.post(`${API_BASE_URL}/analyze_video`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -89,7 +98,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [postureType]);
 
   const handleAnalyze = async () => {
     if (inputMode === 'webcam') {
@@ -155,6 +164,14 @@ function App() {
     return (
       <div className="results-container">
         <h3>Analysis Results</h3>
+        
+        {/* Show specified posture type */}
+        <div className="specified-posture">
+          <h4>Analyzing for: 
+            <span className="posture-type">{postureType.toUpperCase()} POSTURE</span>
+          </h4>
+        </div>
+
         <div className="posture-status">
           <h4>Overall Posture:
             <span className={results.analysis.overall_posture === 'good' ? 'good' : 'bad'}>
@@ -164,7 +181,7 @@ function App() {
         </div>
 
         <div className="analysis-details">
-          {results.analysis.sitting_analysis && (
+          {postureType === 'sitting' && results.analysis.sitting_analysis && (
             <div className="sitting-analysis">
               <h5>Sitting Analysis</h5>
               {results.analysis.sitting_analysis.bad_posture ? (
@@ -184,7 +201,7 @@ function App() {
             </div>
           )}
 
-          {results.analysis.squat_analysis && (
+          {postureType === 'squat' && results.analysis.squat_analysis && (
             <div className="squat-analysis">
               <h5>Squat Analysis</h5>
               {results.analysis.squat_analysis.bad_posture ? (
@@ -204,6 +221,18 @@ function App() {
             </div>
           )}
         </div>
+
+        {/* Show recommendations based on detected posture */}
+        {results.analysis.recommendations && (
+          <div className="recommendations">
+            <h4>Recommendations</h4>
+            <ul>
+              {results.analysis.recommendations.map((rec, index) => (
+                <li key={index}>{rec}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   };
@@ -221,6 +250,14 @@ function App() {
     return (
       <div className="results-container">
         <h3>Video Analysis Results</h3>
+        
+        {/* Show primary posture type being analyzed */}
+        <div className="specified-posture">
+          <h4>Analyzing for: 
+            <span className="posture-type">{postureType.toUpperCase()} POSTURE</span>
+          </h4>
+        </div>
+
         <div className="video-summary">
           <h4>Summary</h4>
           <p>Total Frames: {results.total_frames ?? 'N/A'}</p>
@@ -307,6 +344,29 @@ function App() {
                 </label>
               </div>
 
+              {/* New posture type selector */}
+              <div className="posture-type-selector">
+                <h4>What type of posture are you analyzing?</h4>
+                <label>
+                  <input
+                    type="radio"
+                    value="sitting"
+                    checked={postureType === 'sitting'}
+                    onChange={handlePostureTypeChange}
+                  />
+                  Sitting Posture
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    value="squat"
+                    checked={postureType === 'squat'}
+                    onChange={handlePostureTypeChange}
+                  />
+                  Squat Posture
+                </label>
+              </div>
+
               <div className="file-upload">
                 <input
                   ref={fileInputRef}
@@ -328,6 +388,29 @@ function App() {
 
           {inputMode === 'webcam' && (
             <div className="webcam-section">
+              {/* Posture type selector for webcam */}
+              <div className="posture-type-selector">
+                <h4>What type of posture are you analyzing?</h4>
+                <label>
+                  <input
+                    type="radio"
+                    value="sitting"
+                    checked={postureType === 'sitting'}
+                    onChange={handlePostureTypeChange}
+                  />
+                  Sitting Posture
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    value="squat"
+                    checked={postureType === 'squat'}
+                    onChange={handlePostureTypeChange}
+                  />
+                  Squat Posture
+                </label>
+              </div>
+
               <button onClick={toggleWebcam} className="webcam-toggle-button">
                 {webcamActive ? 'Stop Webcam' : 'Start Webcam'}
               </button>
