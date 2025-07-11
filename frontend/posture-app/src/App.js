@@ -158,13 +158,11 @@ function App() {
     return (
       <div className="results-container">
         <h3>Analysis Results</h3>
-
         <div className="specified-posture">
           <h4>Analyzing for:
             <span className="posture-type"> {postureType.toUpperCase()} POSTURE</span>
           </h4>
         </div>
-
         <div className="posture-status">
           <h4>Overall Posture:
             <span className={results.analysis.bad_posture === false ? 'good' : 'bad'}>
@@ -173,11 +171,9 @@ function App() {
             </span>
           </h4>
         </div>
-
         {results.analysis.neck_angle !== undefined && (
           <p>Neck Angle: {results.analysis.neck_angle.toFixed(2)}°</p>
         )}
-
         {results.analysis.problems && results.analysis.problems.length > 0 && (
           <div className="issues">
             <h5>Issues Detected:</h5>
@@ -192,22 +188,69 @@ function App() {
     );
   };
 
+  const renderVideoResults = (results) => {
+    if (!results) {
+      return (
+        <div className="results-container">
+          <h3>Video Analysis Results</h3>
+          <p>No analysis data available</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="results-container">
+        <h3>Video Analysis Results</h3>
+        <div className="specified-posture">
+          <h4>Analyzing for:
+            <span className="posture-type">{postureType.toUpperCase()} POSTURE</span>
+          </h4>
+        </div>
+        <div className="video-summary">
+          <h4>Summary</h4>
+          <p>Total Frames: {results.total_frames ?? 'N/A'}</p>
+          <p>Analyzed Frames: {results.analyzed_frames ?? 'N/A'}</p>
+          <p>
+            Bad Posture:
+            {typeof results.bad_posture_percentage === 'number'
+              ? ` ${results.bad_posture_percentage.toFixed(1)}%`
+              : ' N/A'}
+          </p>
+          {results.summary && (
+            <p>Overall Rating:
+              <span className={results.summary.overall_rating === 'good' ? 'good' : 'bad'}>
+                {results.summary.overall_rating?.toUpperCase() || 'N/A'}
+              </span>
+            </p>
+          )}
+        </div>
+        {results.summary && results.summary.main_issues && results.summary.main_issues.length > 0 && (
+          <div className="main-issues">
+            <h4>Main Issues Found</h4>
+            <ul>
+              {results.summary.main_issues.map(([issue, count], index) => (
+                <li key={index}>{issue} (occurred {count} times)</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Posture Detection App</h1>
         <p>Upload an image/video or use webcam to analyze your posture</p>
       </header>
-
       <main className="main-content">
-        {/* UI omitted for brevity; retain your existing input section unchanged */}
-
+        {/* Your existing upload section UI here */}
         {error && (
           <div className="error-message">
             <p>Error: {error}</p>
           </div>
         )}
-
         {results && (
           analysisType === 'image' || inputMode === 'webcam'
             ? renderImageResults(results)
