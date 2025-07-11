@@ -244,19 +244,127 @@ function App() {
         <h1>Posture Detection App</h1>
         <p>Upload an image/video or use webcam to analyze your posture</p>
       </header>
-      <main className="main-content">
-        {/* Your existing upload section UI here */}
-        {error && (
-          <div className="error-message">
-            <p>Error: {error}</p>
+     <main className="main-content">
+  <div className="upload-section">
+    <div className="input-mode-selector">
+      <label>
+        <input
+          type="radio"
+          value="upload"
+          checked={inputMode === 'upload'}
+          onChange={() => setInputMode('upload')}
+        />
+        Upload
+      </label>
+      <label>
+        <input
+          type="radio"
+          value="webcam"
+          checked={inputMode === 'webcam'}
+          onChange={() => setInputMode('webcam')}
+        />
+        Webcam
+      </label>
+    </div>
+
+    <div className="analysis-type-selector">
+      <label>
+        <input
+          type="radio"
+          value="image"
+          checked={analysisType === 'image'}
+          onChange={handleAnalysisTypeChange}
+        />
+        Image
+      </label>
+      <label>
+        <input
+          type="radio"
+          value="video"
+          checked={analysisType === 'video'}
+          onChange={handleAnalysisTypeChange}
+        />
+        Video
+      </label>
+    </div>
+
+    <div className="posture-type-selector">
+      <h4>Select Posture Type:</h4>
+      <label>
+        <input
+          type="radio"
+          value="sitting"
+          checked={postureType === 'sitting'}
+          onChange={handlePostureTypeChange}
+        />
+        Sitting
+      </label>
+      <label>
+        <input
+          type="radio"
+          value="squat"
+          checked={postureType === 'squat'}
+          onChange={handlePostureTypeChange}
+        />
+        Squat
+      </label>
+    </div>
+
+    {inputMode === 'upload' && (
+      <div className="file-upload">
+        <input
+          type="file"
+          accept={analysisType === 'image' ? 'image/*' : 'video/*'}
+          onChange={handleFileSelect}
+          ref={fileInputRef}
+          className="file-input"
+        />
+      </div>
+    )}
+
+    {inputMode === 'webcam' && (
+      <div className="webcam-section">
+        <button
+          onClick={toggleWebcam}
+          className="webcam-toggle-button"
+        >
+          {webcamActive ? 'Stop Webcam' : 'Start Webcam'}
+        </button>
+        {webcamActive && (
+          <div className="webcam-container">
+            <Webcam
+              audio={false}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              className="webcam-feed"
+            />
+            <p className="webcam-instructions">Align yourself in front of the webcam for analysis.</p>
           </div>
         )}
-        {results && (
-          analysisType === 'image' || inputMode === 'webcam'
-            ? renderImageResults(results)
-            : renderVideoResults(results)
-        )}
-      </main>
+      </div>
+    )}
+
+    <button
+      onClick={handleAnalyze}
+      className="analyze-button"
+      disabled={loading}
+    >
+      {loading ? 'Analyzing...' : 'Analyze'}
+    </button>
+  </div>
+
+  {error && (
+    <div className="error-message">
+      <p>Error: {error}</p>
+    </div>
+  )}
+  {results && (
+    analysisType === 'image' || inputMode === 'webcam'
+      ? renderImageResults(results)
+      : renderVideoResults(results)
+  )}
+</main>
+
     </div>
   );
 }
