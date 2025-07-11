@@ -36,7 +36,7 @@ const Webcam = React.forwardRef(({ audio, screenshotFormat, className, videoCons
         stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [audio, videoConstraints, onUserMediaError, stream]);
 
   React.useImperativeHandle(ref, () => ({
     getScreenshot: () => {
@@ -176,35 +176,34 @@ function App() {
   }, [postureType]);
 
   const captureAndAnalyze = useCallback(async () => {
-  if (!webcamRef.current) {
-    setError('Webcam not available');
-    return;
-  }
+    if (!webcamRef.current) {
+      setError('Webcam not available');
+      return;
+    }
 
-  const imageSrc = webcamRef.current.getScreenshot();
-  if (!imageSrc) {
-    setError('Failed to capture image from webcam');
-    return;
-  }
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) {
+      setError('Failed to capture image from webcam');
+      return;
+    }
 
-  setLoading(true);
-  setError(null);
-  setResults(null);
+    setLoading(true);
+    setError(null);
+    setResults(null);
 
-  try {
-    const response = await fetch(imageSrc);
-    const blob = await response.blob();
-    const file = new File([blob], 'webcam-capture.jpg', { type: 'image/jpeg' });
-    const result = await analyzeImage(file);
-    setResults(result);
-  } catch (err) {
-    console.error('Capture and analyze error:', err);
-    setError(getErrorMessage(err));
-  } finally {
-    setLoading(false);
-  }
-}, [analyzeImage]); // Add analyzeImage to the dependency array
-
+    try {
+      const response = await fetch(imageSrc);
+      const blob = await response.blob();
+      const file = new File([blob], 'webcam-capture.jpg', { type: 'image/jpeg' });
+      const result = await analyzeImage(file);
+      setResults(result);
+    } catch (err) {
+      console.error('Capture and analyze error:', err);
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [analyzeImage]);
 
   const getErrorMessage = (err) => {
     if (err.message) {
