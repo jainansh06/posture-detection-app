@@ -1,4 +1,3 @@
-current app.css:
 .App {
   font-family: Arial, sans-serif;
   max-width: 900px;
@@ -38,55 +37,22 @@ current app.css:
   text-align: center;
 }
 
-.input-mode-selector {
-  margin-bottom: 20px;
-}
-
-.input-mode-selector label {
-  margin: 0 15px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.input-mode-selector input {
-  margin-right: 8px;
-}
-
-.analysis-type-selector {
-  margin-bottom: 20px;
-}
-
-.analysis-type-selector label {
-  margin: 0 15px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.analysis-type-selector input {
-  margin-right: 8px;
-}
-
+.input-mode-selector,
+.analysis-type-selector,
 .posture-type-selector {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 5px;
+  margin-bottom: 20px;
 }
 
-.posture-type-selector h4 {
-  margin: 0 0 15px 0;
-  font-size: 16px;
-  color: #495057;
-}
-
+.input-mode-selector label,
+.analysis-type-selector label,
 .posture-type-selector label {
   margin: 0 15px;
-  font-size: 15px;
+  font-size: 16px;
   cursor: pointer;
-  display: inline-block;
 }
 
+.input-mode-selector input,
+.analysis-type-selector input,
 .posture-type-selector input {
   margin-right: 8px;
 }
@@ -219,27 +185,15 @@ current app.css:
   font-weight: bold;
 }
 
-.analysis-details {
+.analysis-details,
+.issues {
   margin-top: 20px;
 }
 
-.sitting-analysis, .squat-analysis {
-  background-color: #f8f9fa;
-  padding: 20px;
-  border: 1px solid #dee2e6;
-  border-left: 4px solid #007bff;
-  width: 100%;
-  max-width: 600px;
-}
-
-.sitting-analysis h5, .squat-analysis h5 {
-  margin-top: 0;
-  color: #495057;
+.issues h5 {
+  margin: 0 0 10px 0;
   font-size: 16px;
-}
-
-.issues {
-  margin-top: 10px;
+  color: #b71c1c;
 }
 
 .issues ul {
@@ -310,52 +264,17 @@ current app.css:
 }
 
 @media (max-width: 768px) {
-  .App {
-    padding: 10px;
-  }
-  
-  .App-header {
-    padding: 20px;
-  }
-  
-  .App-header h1 {
-    font-size: 24px;
-  }
-  
-  .upload-section {
-    padding: 20px;
-  }
-  
-  .analysis-details {
-    margin-top: 20px;
-  }
-  
+  .App { padding: 10px; }
+  .App-header { padding: 20px; }
+  .App-header h1 { font-size: 24px; }
+  .upload-section { padding: 20px; }
   .input-mode-selector label,
-  .analysis-type-selector label {
-    display: block;
-    margin: 10px 0;
-  }
-  
-  .posture-type-selector label {
-    display: block;
-    margin: 10px 0;
-  }
+  .analysis-type-selector label,
+  .posture-type-selector label { display: block; margin: 10px 0; }
 }
 
 @media (max-width: 480px) {
-  .App-header h1 {
-    font-size: 20px;
-  }
-  
-  .upload-section {
-    padding: 15px;
-  }
-  
-  .results-container {
-    padding: 15px;
-  }
-  
-  .posture-type-selector {
-    padding: 10px;
-  }
+  .App-header h1 { font-size: 20px; }
+  .upload-section, .results-container { padding: 15px; }
+  .posture-type-selector { padding: 10px; }
 }
