@@ -2,10 +2,11 @@ import os
 
 #bind = "0.0.0.0:5000" aws
 bind = f"0.0.0.0:{os.environ.get('PORT', '5000')}"
-workers = 2
+workers = 1
+threads = 1
 worker_class = "sync"
 worker_connections = 1000
-timeout = 300
+timeout = 120
 keepalive = 5
 max_requests = 1000
 max_requests_jitter = 100
