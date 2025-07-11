@@ -5,7 +5,7 @@ import axios from 'axios';
 // Improved API URL configuration with better error handling
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://posture-detection-app-3ih3.onrender.com 
+    ? 'https://posture-detection-app-3ih3.onrender.com' 
     : 'http://localhost:5000');
 
 function App() {
@@ -94,7 +94,7 @@ function App() {
     setError(null);
   };
 
-  const analyzeImage = async (file) => {
+  const analyzeImage = useCallback(async (file) => {
     const formData = new FormData();
     formData.append('image', file);
     formData.append('posture_type', postureType);
@@ -111,9 +111,9 @@ function App() {
       }
     });
     return response.data;
-  };
+  }, [postureType]);
 
-  const analyzeVideo = async (file) => {
+  const analyzeVideo = useCallback(async (file) => {
     const formData = new FormData();
     formData.append('video', file);
     formData.append('posture_type', postureType);
@@ -130,7 +130,7 @@ function App() {
       }
     });
     return response.data;
-  };
+  }, [postureType]);
 
   const captureAndAnalyze = useCallback(async () => {
     if (!webcamRef.current) {
@@ -160,7 +160,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [postureType]);
+  }, [analyzeImage]);
 
   const getErrorMessage = (err) => {
     if (err.response?.data?.error) {
