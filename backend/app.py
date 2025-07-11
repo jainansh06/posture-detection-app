@@ -10,7 +10,7 @@ import gc
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-CORS(app, origins="*")
+CORS(app, resources={r"/*": {"origins": "https://posture-detection-app-dun.vercel.app"}})
 
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(
