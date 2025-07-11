@@ -8,189 +8,108 @@ import io
 import base64
 import tempfile
 import os
+import gc
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+CORS(app, origins="*")  # Temporarily allow all origins
 
-# More explicit CORS configuration
-CORS(app, 
-     origins=[
-         'https://posture-detection-app-dun.vercel.app',
-         'http://localhost:3000',
-         'http://localhost:5173'
-     ],
-     methods=['GET', 'POST', 'OPTIONS'],
-     allow_headers=['Content-Type', 'Authorization'],
-     supports_credentials=True
-)
-
-# Alternative: If above doesn't work, try this more permissive version
-# CORS(app, origins="*")
-
-# Initialize MediaPipe
+# Initialize MediaPipe with optimized settings
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
-pose = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5)
-
-def calculate_angle(point1, point2, point3):
-    a = np.array(point1)
-    b = np.array(point2)
-    c = np.array(point3)
-    ba = a - b
-    bc = c - b
-    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    angle = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
-    return np.degrees(angle)
+pose = mp_pose.Pose(
+    static_image_mode=True, 
+    min_detection_confidence=0.5,
+    model_complexity=0  # Use lighter model
+)
 
 @app.route("/")
 def home():
-    return jsonify({"message": "Flask backend is running correctly on Render."})
+    return jsonify({"message": "Flask backend is running correctly on Render.", "status": "healthy"})
 
-@app.route('/analyze_pose', methods=['POST', 'OPTIONS'])
+@app.route("/test")
+def test():
+    return jsonify({"message": "Test endpoint working", "mediapipe_available": True})
+
+@app.route('/analyze_pose', methods=['POST'])
 def analyze_pose():
-    # Handle preflight OPTIONS request
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        return response
-    
     try:
+        # Add detailed logging
+        print("Received request to analyze_pose")
+        
         if 'image' not in request.files:
+            print("No image in request")
             return jsonify({'error': 'No image provided'}), 400
 
         file = request.files['image']
         posture_type = request.form.get('posture_type')
         
-        image = Image.open(file.stream)
-        image_rgb = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-
-        results = pose.process(cv2.cvtColor(image_rgb, cv2.COLOR_BGR2RGB))
-        if not results.pose_landmarks:
-            return jsonify({'error': 'No pose detected'}), 400
-
-        landmarks = results.pose_landmarks.landmark
-        key_points = extract_key_points(landmarks)
+        print(f"Processing image, posture_type: {posture_type}")
         
-        if posture_type == 'sitting':
-            sitting_analysis = analyze_sitting(key_points)
-            analysis = {
-                'overall_posture': 'bad' if sitting_analysis.get('bad_posture', False) else 'good',
-                'sitting_analysis': sitting_analysis
-            }
-        elif posture_type == 'squat':
-            squat_analysis = analyze_squat(key_points)
-            analysis = {
-                'overall_posture': 'bad' if squat_analysis.get('bad_posture', False) else 'good',
-                'squat_analysis': squat_analysis
-            }
-        else:
-            analysis = analyze_posture(key_points)
+        # Process image with error handling
+        try:
+            image = Image.open(file.stream)
+            image_array = np.array(image)
+            
+            # Convert to RGB if necessary
+            if len(image_array.shape) == 3 and image_array.shape[2] == 3:
+                image_rgb = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+            else:
+                image_rgb = image_array
+                
+            print("Image loaded successfully")
+            
+        except Exception as img_error:
+            print(f"Image processing error: {img_error}")
+            return jsonify({'error': f'Image processing failed: {str(img_error)}'}), 400
 
-        response = jsonify({
-            'success': True,
-            'landmarks_detected': True,
-            'key_points': key_points,
-            'analysis': analysis
-        })
-        
-        # Explicitly set CORS headers
-        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
-        return response
+        # Process with MediaPipe
+        try:
+            results = pose.process(cv2.cvtColor(image_rgb, cv2.COLOR_BGR2RGB))
+            print(f"MediaPipe processing complete. Landmarks detected: {results.pose_landmarks is not None}")
+            
+            if not results.pose_landmarks:
+                return jsonify({'error': 'No pose detected'}), 400
 
-    except Exception as e:
-        response = jsonify({'error': str(e)})
-        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
-        return response, 500
-
-@app.route('/analyze_video', methods=['POST', 'OPTIONS'])
-def analyze_video():
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        return response
-    
-    try:
-        if 'video' not in request.files:
-            return jsonify({'error': 'No video provided'}), 400
-
-        file = request.files['video']
-        temp_dir = tempfile.mkdtemp()
-        video_path = os.path.join(temp_dir, secure_filename(file.filename))
-        file.save(video_path)
-
-        results = process_video(video_path)
-
-        os.remove(video_path)
-        os.rmdir(temp_dir)
-
-        response = jsonify(results)
-        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
-        return response
-
-    except Exception as e:
-        response = jsonify({'error': str(e)})
-        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
-        return response, 500
-
-def process_video(video_path):
-    cap = cv2.VideoCapture(video_path)
-    frame_results = []
-    frame_count = 0
-    bad_posture_count = 0
-    frame_skip = 5
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        if frame_count % frame_skip == 0:
-            results = pose.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            if results.pose_landmarks:
-                landmarks = results.pose_landmarks.landmark
-                key_points = extract_key_points(landmarks)
-                analysis = analyze_posture(key_points)
-                frame_result = {
-                    'frame': frame_count,
-                    'timestamp': frame_count / 30.0,
-                    'analysis': analysis
+            landmarks = results.pose_landmarks.landmark
+            key_points = extract_key_points(landmarks)
+            
+            # Analyze based on posture type
+            if posture_type == 'sitting':
+                sitting_analysis = analyze_sitting(key_points)
+                analysis = {
+                    'overall_posture': 'bad' if sitting_analysis.get('bad_posture', False) else 'good',
+                    'sitting_analysis': sitting_analysis
                 }
-                frame_results.append(frame_result)
-                if analysis['overall_posture'] == 'bad':
-                    bad_posture_count += 1
+            elif posture_type == 'squat':
+                squat_analysis = analyze_squat(key_points)
+                analysis = {
+                    'overall_posture': 'bad' if squat_analysis.get('bad_posture', False) else 'good',
+                    'squat_analysis': squat_analysis
+                }
+            else:
+                analysis = analyze_posture(key_points)
 
-        frame_count += 1
+            print("Analysis complete")
+            
+            # Clean up memory
+            del image, image_array, image_rgb, results
+            gc.collect()
+            
+            return jsonify({
+                'success': True,
+                'landmarks_detected': True,
+                'key_points': key_points,
+                'analysis': analysis
+            })
+            
+        except Exception as pose_error:
+            print(f"Pose processing error: {pose_error}")
+            return jsonify({'error': f'Pose processing failed: {str(pose_error)}'}), 500
 
-    cap.release()
-
-    total_analyzed_frames = len(frame_results)
-    bad_posture_percentage = (bad_posture_count / total_analyzed_frames * 100) if total_analyzed_frames > 0 else 0
-
-    return {
-        'success': True,
-        'total_frames': frame_count,
-        'analyzed_frames': total_analyzed_frames,
-        'bad_posture_frames': bad_posture_count,
-        'bad_posture_percentage': bad_posture_percentage,
-        'frame_results': frame_results[-10:],
-        'summary': {
-            'overall_rating': 'good' if bad_posture_percentage < 30 else 'bad',
-            'main_issues': get_main_issues(frame_results)
-        }
-    }
-
-def get_main_issues(frame_results):
-    issues = {}
-    for frame in frame_results:
-        sitting_problems = frame['analysis']['sitting_analysis'].get('problems', [])
-        squat_problems = frame['analysis']['squat_analysis'].get('problems', [])
-        for problem in sitting_problems + squat_problems:
-            issues[problem] = issues.get(problem, 0) + 1
-    return sorted(issues.items(), key=lambda x: x[1], reverse=True)[:3]
+    except Exception as e:
+        print(f"General error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 def extract_key_points(landmarks):
     key_points = {}
@@ -284,11 +203,19 @@ def analyze_sitting(key_points):
 
     return issues
 
+def calculate_angle(point1, point2, point3):
+    a = np.array(point1)
+    b = np.array(point2)
+    c = np.array(point3)
+    ba = a - b
+    bc = c - b
+    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+    angle = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
+    return np.degrees(angle)
+
 @app.route('/health', methods=['GET'])
 def health_check():
-    response = jsonify({'status': 'healthy'})
-    response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
-    return response
+    return jsonify({'status': 'healthy'})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
