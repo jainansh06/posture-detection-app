@@ -20,6 +20,10 @@ function App() {
   const fileInputRef = useRef(null);
   const webcamRef = useRef(null);
 
+  useEffect(() => {
+  console.log("Posture Analysis Results:", results);
+}, [results]);
+
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     setSelectedFile(file);
@@ -160,12 +164,7 @@ function App() {
         </div>
       );
     }
-
-useEffect(() => {
-  console.log("Posture Analysis Results:", results);
-}, [results]);
-
-
+    
     return (
       <div className="results-container">
         <h3>Analysis Results</h3>
