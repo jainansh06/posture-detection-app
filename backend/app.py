@@ -11,8 +11,21 @@ import os
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-CORS(app, origins=['https://posture-detection-app-dun.vercel.app'])
 
+# More explicit CORS configuration
+CORS(app, 
+     origins=[
+         'https://posture-detection-app-dun.vercel.app',
+         'http://localhost:3000',
+         'http://localhost:5173'
+     ],
+     methods=['GET', 'POST', 'OPTIONS'],
+     allow_headers=['Content-Type', 'Authorization'],
+     supports_credentials=True
+)
+
+# Alternative: If above doesn't work, try this more permissive version
+# CORS(app, origins="*")
 
 # Initialize MediaPipe
 mp_pose = mp.solutions.pose
@@ -25,23 +38,30 @@ def calculate_angle(point1, point2, point3):
     c = np.array(point3)
     ba = a - b
     bc = c - b
-    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc)) # cosine of angle using dot product 
+    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
     angle = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
     return np.degrees(angle)
 
 @app.route("/")
 def home():
-    return "Flask backend is running correctly."
+    return jsonify({"message": "Flask backend is running correctly on Render."})
 
-
-@app.route('/analyze_pose', methods=['POST']) #Main endpoint for analyzing posture from uploaded images
+@app.route('/analyze_pose', methods=['POST', 'OPTIONS'])
 def analyze_pose():
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+    
     try:
         if 'image' not in request.files:
             return jsonify({'error': 'No image provided'}), 400
 
         file = request.files['image']
-        posture_type = request.form.get('posture_type')  # 'sitting' or 'squat'
+        posture_type = request.form.get('posture_type')
         
         image = Image.open(file.stream)
         image_rgb = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
@@ -53,7 +73,6 @@ def analyze_pose():
         landmarks = results.pose_landmarks.landmark
         key_points = extract_key_points(landmarks)
         
-        # Analyze based on specified posture type
         if posture_type == 'sitting':
             sitting_analysis = analyze_sitting(key_points)
             analysis = {
@@ -67,21 +86,33 @@ def analyze_pose():
                 'squat_analysis': squat_analysis
             }
         else:
-            # If no posture type specified, use automatic detection (your existing logic)
             analysis = analyze_posture(key_points)
 
-        return jsonify({
+        response = jsonify({
             'success': True,
             'landmarks_detected': True,
             'key_points': key_points,
             'analysis': analysis
         })
+        
+        # Explicitly set CORS headers
+        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
+        return response
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        response = jsonify({'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
+        return response, 500
 
-@app.route('/analyze_video', methods=['POST']) # Endpoint for analyzing posture from uploaded video files
+@app.route('/analyze_video', methods=['POST', 'OPTIONS'])
 def analyze_video():
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+    
     try:
         if 'video' not in request.files:
             return jsonify({'error': 'No video provided'}), 400
@@ -96,10 +127,14 @@ def analyze_video():
         os.remove(video_path)
         os.rmdir(temp_dir)
 
-        return jsonify(results)
+        response = jsonify(results)
+        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
+        return response
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        response = jsonify({'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
+        return response, 500
 
 def process_video(video_path):
     cap = cv2.VideoCapture(video_path)
@@ -135,7 +170,7 @@ def process_video(video_path):
     total_analyzed_frames = len(frame_results)
     bad_posture_percentage = (bad_posture_count / total_analyzed_frames * 100) if total_analyzed_frames > 0 else 0
 
-    return { #analysis results
+    return {
         'success': True,
         'total_frames': frame_count,
         'analyzed_frames': total_analyzed_frames,
@@ -148,7 +183,7 @@ def process_video(video_path):
         }
     }
 
-def get_main_issues(frame_results): #Analyze frame results to identify the most common posture problems
+def get_main_issues(frame_results):
     issues = {}
     for frame in frame_results:
         sitting_problems = frame['analysis']['sitting_analysis'].get('problems', [])
@@ -157,9 +192,9 @@ def get_main_issues(frame_results): #Analyze frame results to identify the most 
             issues[problem] = issues.get(problem, 0) + 1
     return sorted(issues.items(), key=lambda x: x[1], reverse=True)[:3]
 
-def extract_key_points(landmarks): # Extract key points needed for posture analysis.
+def extract_key_points(landmarks):
     key_points = {}
-    landmark_indices = { #correspond to specific body parts in MediaPipe's pose model
+    landmark_indices = {
         'nose': 0,
         'left_shoulder': 11,
         'right_shoulder': 12,
@@ -180,7 +215,7 @@ def extract_key_points(landmarks): # Extract key points needed for posture analy
         }
     return key_points
 
-def analyze_posture(key_points): #posture analysis for both sitting and squat positions
+def analyze_posture(key_points):
     analysis = {
         'squat_analysis': {},
         'sitting_analysis': {},
@@ -250,13 +285,11 @@ def analyze_sitting(key_points):
     return issues
 
 @app.route('/health', methods=['GET'])
-def health_check(): #Health check endpoint for monitoring and deployment verification
-    return jsonify({'status': 'healthy'})
+def health_check():
+    response = jsonify({'status': 'healthy'})
+    response.headers.add('Access-Control-Allow-Origin', 'https://posture-detection-app-dun.vercel.app')
+    return response
 
-#if __name__ == '__main__':    aws
-    #app.run(debug=True, host='0.0.0.0', port=5000)  aws
 if __name__ == '__main__':
-    # Use PORT environment variable provided by Render
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
-
