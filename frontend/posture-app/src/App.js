@@ -3,9 +3,13 @@ import Webcam from 'react-webcam';
 import axios from 'axios';
 import './App.css';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Updated API URL configuration
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://posture-detection-app-3ih3.onrender.com' 
+    : 'http://localhost:5000');
 
-console.log('Environment variables:', process.env);
+console.log('Environment:', process.env.NODE_ENV);
 console.log('API_BASE_URL being used:', API_BASE_URL);
 
 function App() {
@@ -19,6 +23,29 @@ function App() {
   const [webcamActive, setWebcamActive] = useState(false);
   const fileInputRef = useRef(null);
   const webcamRef = useRef(null);
+
+  // Test backend connection on component mount
+  useEffect(() => {
+    const testBackendConnection = async () => {
+      try {
+        console.log('Testing backend connection...');
+        const response = await axios.get(`${API_BASE_URL}/`, {
+          timeout: 10000,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        console.log('Backend connection successful:', response.data);
+      } catch (err) {
+        console.error('Backend connection failed:', err.message);
+        if (err.code === 'ECONNABORTED') {
+          console.error('Request timed out - backend might be starting up');
+        }
+      }
+    };
+
+    testBackendConnection();
+  }, []);
 
   useEffect(() => {
     console.log("Posture Analysis Results:", results);
@@ -51,8 +78,14 @@ function App() {
     formData.append('image', file);
     formData.append('posture_type', postureType);
 
+    console.log('Sending request to:', `${API_BASE_URL}/analyze_pose`);
+    
     const response = await axios.post(`${API_BASE_URL}/analyze_pose`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 30000, // 30 second timeout
+      withCredentials: false
     });
     return response.data;
   };
@@ -62,8 +95,14 @@ function App() {
     formData.append('video', file);
     formData.append('posture_type', postureType);
 
+    console.log('Sending video request to:', `${API_BASE_URL}/analyze_video`);
+    
     const response = await axios.post(`${API_BASE_URL}/analyze_video`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000, // 60 second timeout for video
+      withCredentials: false
     });
     return response.data;
   };
@@ -92,7 +131,21 @@ function App() {
       setResults(result);
     } catch (err) {
       console.error('Capture and analyze error:', err);
-      setError(err.response?.data?.error || err.message || 'Analysis failed');
+      let errorMessage = 'Analysis failed';
+      
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out. Backend might be starting up, please try again.';
+      } else if (err.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -133,7 +186,21 @@ function App() {
       setResults(result);
     } catch (err) {
       console.error('Analysis error:', err);
-      setError(err.response?.data?.error || err.message || 'Analysis failed');
+      let errorMessage = 'Analysis failed';
+      
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out. Backend might be starting up, please try again.';
+      } else if (err.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -182,6 +249,24 @@ function App() {
                 <li key={index}>{problem}</li>
               ))}
             </ul>
+          </div>
+        )}
+        {results.landmarks_detected && (
+          <div className="analysis-details">
+            <p>✓ Pose landmarks successfully detected</p>
+            {results.key_points && (
+              <div>
+                <h5>Key Points Detected:</h5>
+                <ul>
+                  {results.key_points.left_shoulder && (
+                    <li>Left Shoulder: Detected</li>
+                  )}
+                  {results.key_points.nose && (
+                    <li>Nose: Detected</li>
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -244,127 +329,142 @@ function App() {
         <h1>Posture Detection App</h1>
         <p>Upload an image/video or use webcam to analyze your posture</p>
       </header>
-     <main className="main-content">
-  <div className="upload-section">
-    <div className="input-mode-selector">
-      <label>
-        <input
-          type="radio"
-          value="upload"
-          checked={inputMode === 'upload'}
-          onChange={() => setInputMode('upload')}
-        />
-        Upload
-      </label>
-      <label>
-        <input
-          type="radio"
-          value="webcam"
-          checked={inputMode === 'webcam'}
-          onChange={() => setInputMode('webcam')}
-        />
-        Webcam
-      </label>
-    </div>
+      <main className="main-content">
+        <div className="upload-section">
+          <div className="input-mode-selector">
+            <label>
+              <input
+                type="radio"
+                value="upload"
+                checked={inputMode === 'upload'}
+                onChange={() => setInputMode('upload')}
+              />
+              Upload
+            </label>
+            <label>
+              <input
+                type="radio"
+                value="webcam"
+                checked={inputMode === 'webcam'}
+                onChange={() => setInputMode('webcam')}
+              />
+              Webcam
+            </label>
+          </div>
 
-    <div className="analysis-type-selector">
-      <label>
-        <input
-          type="radio"
-          value="image"
-          checked={analysisType === 'image'}
-          onChange={handleAnalysisTypeChange}
-        />
-        Image
-      </label>
-      <label>
-        <input
-          type="radio"
-          value="video"
-          checked={analysisType === 'video'}
-          onChange={handleAnalysisTypeChange}
-        />
-        Video
-      </label>
-    </div>
+          <div className="analysis-type-selector">
+            <label>
+              <input
+                type="radio"
+                value="image"
+                checked={analysisType === 'image'}
+                onChange={handleAnalysisTypeChange}
+              />
+              Image
+            </label>
+            <label>
+              <input
+                type="radio"
+                value="video"
+                checked={analysisType === 'video'}
+                onChange={handleAnalysisTypeChange}
+              />
+              Video
+            </label>
+          </div>
 
-    <div className="posture-type-selector">
-      <h4>Select Posture Type:</h4>
-      <label>
-        <input
-          type="radio"
-          value="sitting"
-          checked={postureType === 'sitting'}
-          onChange={handlePostureTypeChange}
-        />
-        Sitting
-      </label>
-      <label>
-        <input
-          type="radio"
-          value="squat"
-          checked={postureType === 'squat'}
-          onChange={handlePostureTypeChange}
-        />
-        Squat
-      </label>
-    </div>
+          <div className="posture-type-selector">
+            <h4>Select Posture Type:</h4>
+            <label>
+              <input
+                type="radio"
+                value="sitting"
+                checked={postureType === 'sitting'}
+                onChange={handlePostureTypeChange}
+              />
+              Sitting
+            </label>
+            <label>
+              <input
+                type="radio"
+                value="squat"
+                checked={postureType === 'squat'}
+                onChange={handlePostureTypeChange}
+              />
+              Squat
+            </label>
+          </div>
 
-    {inputMode === 'upload' && (
-      <div className="file-upload">
-        <input
-          type="file"
-          accept={analysisType === 'image' ? 'image/*' : 'video/*'}
-          onChange={handleFileSelect}
-          ref={fileInputRef}
-          className="file-input"
-        />
-      </div>
-    )}
+          {inputMode === 'upload' && (
+            <div className="file-upload">
+              <input
+                type="file"
+                accept={analysisType === 'image' ? 'image/*' : 'video/*'}
+                onChange={handleFileSelect}
+                ref={fileInputRef}
+                className="file-input"
+              />
+              {selectedFile && (
+                <div className="file-info">
+                  <p>Selected: {selectedFile.name}</p>
+                  <p>Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p>Type: {selectedFile.type}</p>
+                </div>
+              )}
+            </div>
+          )}
 
-    {inputMode === 'webcam' && (
-      <div className="webcam-section">
-        <button
-          onClick={toggleWebcam}
-          className="webcam-toggle-button"
-        >
-          {webcamActive ? 'Stop Webcam' : 'Start Webcam'}
-        </button>
-        {webcamActive && (
-          <div className="webcam-container">
-            <Webcam
-              audio={false}
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              className="webcam-feed"
-            />
-            <p className="webcam-instructions">Align yourself in front of the webcam for analysis.</p>
+          {inputMode === 'webcam' && (
+            <div className="webcam-section">
+              <button
+                onClick={toggleWebcam}
+                className="webcam-toggle-button"
+              >
+                {webcamActive ? 'Stop Webcam' : 'Start Webcam'}
+              </button>
+              {webcamActive && (
+                <div className="webcam-container">
+                  <Webcam
+                    audio={false}
+                    ref={webcamRef}
+                    screenshotFormat="image/jpeg"
+                    className="webcam-feed"
+                    videoConstraints={{
+                      width: 640,
+                      height: 480,
+                      facingMode: "user"
+                    }}
+                  />
+                  <p className="webcam-instructions">
+                    Align yourself in front of the webcam for analysis.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            onClick={handleAnalyze}
+            className="analyze-button"
+            disabled={loading || (inputMode === 'upload' && !selectedFile) || (inputMode === 'webcam' && !webcamActive)}
+          >
+            {loading ? 'Analyzing...' : 'Analyze'}
+          </button>
+        </div>
+
+        {error && (
+          <div className="error-message">
+            <h4>Error</h4>
+            <p>{error}</p>
           </div>
         )}
-      </div>
-    )}
 
-    <button
-      onClick={handleAnalyze}
-      className="analyze-button"
-      disabled={loading}
-    >
-      {loading ? 'Analyzing...' : 'Analyze'}
-    </button>
-  </div>
-
-  {error && (
-    <div className="error-message">
-      <p>Error: {error}</p>
-    </div>
-  )}
-  {results && (
-    analysisType === 'image' || inputMode === 'webcam'
-      ? renderImageResults(results)
-      : renderVideoResults(results)
-  )}
-</main>
-
+        {results && (
+          analysisType === 'image' || inputMode === 'webcam'
+            ? renderImageResults(results)
+            : renderVideoResults(results)
+        )}
+      </main>
     </div>
   );
 }
