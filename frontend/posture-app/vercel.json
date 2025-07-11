@@ -12,6 +12,9 @@
   "routes": [
     {
       "src": "/static/(.*)",
+      "headers": {
+        "cache-control": "s-maxage=31536000,immutable"
+      },
       "dest": "/static/$1"
     },
     {
@@ -20,6 +23,11 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://posture-detection-app-3ih3.onrender.com"
+    "REACT_APP_API_URL": "@react_app_api_url"
+  },
+  "functions": {
+    "app/api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
   }
 }
