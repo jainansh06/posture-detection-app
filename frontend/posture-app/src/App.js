@@ -47,7 +47,7 @@ function App() {
     setResults(null);
     setError(null);
   };
-
+//Image analysis API call
   const analyzeImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -59,7 +59,7 @@ function App() {
     return response.data;
   };
 
-  const analyzeVideo = async (file) => {
+  const analyzeVideo = async (file) => { //Video analysis API call
     const formData = new FormData();
     formData.append('video', file);
     formData.append('posture_type', postureType);
@@ -70,7 +70,7 @@ function App() {
     return response.data;
   };
 
-  const captureAndAnalyze = useCallback(async () => {
+  const captureAndAnalyze = useCallback(async () => { //Capture image from webcam, convert to file, and analyze
     if (!webcamRef.current) {
       setError('Webcam not available');
       return;
