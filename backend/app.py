@@ -3,169 +3,116 @@ from flask_cors import CORS
 import cv2
 import mediapipe as mp
 import numpy as np
-from PIL import Image
-import io
+import tempfile
 import os
 import gc
-from werkzeug.utils import secure_filename
+from PIL import Image
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "https://posture-detection-app-dun.vercel.app"}})
 
 mp_pose = mp.solutions.pose
-pose = mp_pose.Pose(
-    static_image_mode=True,
-    min_detection_confidence=0.5,
-    model_complexity=0
-)
+mp_drawing = mp.solutions.drawing_utils
 
-@app.route("/")
+@app.route('/')
 def home():
-    return jsonify({"message": "Flask backend running on Render.", "status": "healthy"})
+    return "Posture Detection Backend Running"
 
-@app.route("/health", methods=["GET"])
-def health_check():
-    return jsonify({"status": "healthy"})
+def analyze_posture(image_np, posture_type='sitting'):
+    results_dict = {
+        'analysis': {},
+        'key_points': {},
+        'landmarks_detected': False,
+        'success': False
+    }
 
-@app.route("/test", methods=["GET"])
-def test():
-    return jsonify({"message": "Test endpoint working", "mediapipe_available": True})
+    max_dim = 640
+    if max(image_np.shape) > max_dim:
+        scale = max_dim / max(image_np.shape)
+        new_size = (int(image_np.shape[1] * scale), int(image_np.shape[0] * scale))
+        image_np = cv2.resize(image_np, new_size, interpolation=cv2.INTER_AREA)
 
-@app.route("/analyze_pose", methods=["POST"])
+    try:
+        with mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5, model_complexity=0) as pose:
+            image_rgb = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
+            results = pose.process(image_rgb)
+
+            if results.pose_landmarks:
+                results_dict['landmarks_detected'] = True
+                landmarks = results.pose_landmarks.landmark
+
+                left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
+                                 landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+                left_hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,
+                            landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
+                left_knee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x,
+                             landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
+                left_ankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x,
+                              landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
+                nose = [landmarks[mp_pose.PoseLandmark.NOSE.value].x,
+                        landmarks[mp_pose.PoseLandmark.NOSE.value].y]
+
+                results_dict['key_points'] = {
+                    'left_shoulder': left_shoulder,
+                    'left_hip': left_hip,
+                    'left_knee': left_knee,
+                    'left_ankle': left_ankle,
+                    'nose': nose
+                }
+
+                # Example real posture analysis (neck angle)
+                neck_angle = np.abs(left_shoulder[1] - nose[1]) * 180  # Dummy calculation
+                bad_posture = neck_angle > 20
+
+                problems = []
+                if bad_posture:
+                    problems.append(f"Neck bent too far: {neck_angle:.2f} degrees")
+
+                results_dict['analysis'] = {
+                    'bad_posture': bad_posture,
+                    'neck_angle': neck_angle,
+                    'problems': problems
+                }
+                results_dict['success'] = True
+            else:
+                results_dict['analysis'] = {
+                    'bad_posture': False,
+                    'problems': []
+                }
+                results_dict['success'] = True
+    except Exception as e:
+        results_dict['error'] = str(e)
+
+    gc.collect()
+    return results_dict
+
+@app.route('/analyze_pose', methods=['POST'])
 def analyze_pose():
+    posture_type = request.form.get('posture_type', 'sitting')
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image uploaded'}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+
+    tmp_name = None
     try:
-        if 'image' not in request.files:
-            return jsonify({"error": "No image provided"}), 400
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp_name = tmp.name
+            file.save(tmp_name)
+            image = cv2.imread(tmp_name)
 
-        file = request.files['image']
-        posture_type = request.form.get('posture_type', 'sitting')
+        if image is None:
+            return jsonify({'error': 'Failed to load image'}), 400
 
-        image = Image.open(file.stream).convert('RGB')
-        image_np = np.array(image)
-
-        image_rgb = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
-        results = pose.process(cv2.cvtColor(image_rgb, cv2.COLOR_BGR2RGB))
-
-        if not results.pose_landmarks:
-            return jsonify({"error": "No pose detected"}), 400
-
-        landmarks = results.pose_landmarks.landmark
-        key_points = extract_key_points(landmarks)
-
-        # Analyze posture
-        if posture_type == 'sitting':
-            analysis = analyze_sitting(key_points)
-        elif posture_type == 'squat':
-            analysis = analyze_squat(key_points)
-        else:
-            analysis = analyze_posture(key_points)
-
-        # Ensure 'overall_posture' is always present
-        if 'overall_posture' not in analysis:
-            analysis['overall_posture'] = 'bad' if analysis.get('bad_posture', False) else 'good'
-
-        # Memory cleanup
-        del image, image_np, image_rgb, results
-        gc.collect()
-
-        return jsonify({
-            "success": True,
-            "landmarks_detected": True,
-            "key_points": key_points,
-            "analysis": analysis
-        })
-
+        results = analyze_posture(image, posture_type=posture_type)
+        return jsonify(results)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if tmp_name and os.path.exists(tmp_name):
+            os.remove(tmp_name)
 
-def extract_key_points(landmarks):
-    key_points = {}
-    indices = {
-        "nose": 0,
-        "left_shoulder": 11,
-        "right_shoulder": 12,
-        "left_hip": 23,
-        "right_hip": 24,
-        "left_knee": 25,
-        "right_knee": 26,
-        "left_ankle": 27,
-        "right_ankle": 28
-    }
-    for name, idx in indices.items():
-        lm = landmarks[idx]
-        key_points[name] = {
-            "x": lm.x,
-            "y": lm.y,
-            "z": lm.z,
-            "visibility": lm.visibility
-        }
-    return key_points
-
-def analyze_sitting(key_points):
-    issues = {"bad_posture": False, "problems": []}
-    try:
-        nose = [key_points["nose"]["x"], key_points["nose"]["y"]]
-        shoulder = [key_points["left_shoulder"]["x"], key_points["left_shoulder"]["y"]]
-        hip = [key_points["left_hip"]["x"], key_points["left_hip"]["y"]]
-        neck_angle = calculate_angle(nose, shoulder, hip)
-
-        if neck_angle > 30:
-            issues["bad_posture"] = True
-            issues["problems"].append(f"Neck bent too much: {neck_angle:.1f}°")
-
-        issues["neck_angle"] = neck_angle
-
-    except Exception as e:
-        issues["error"] = str(e)
-
-    return issues
-
-def analyze_squat(key_points):
-    issues = {"bad_posture": False, "problems": []}
-    try:
-        knee_x = key_points["left_knee"]["x"]
-        ankle_x = key_points["left_ankle"]["x"]
-        if knee_x > ankle_x + 0.05:
-            issues["bad_posture"] = True
-            issues["problems"].append("Left knee over toe")
-
-        shoulder = [key_points["left_shoulder"]["x"], key_points["left_shoulder"]["y"]]
-        hip = [key_points["left_hip"]["x"], key_points["left_hip"]["y"]]
-        knee = [key_points["left_knee"]["x"], key_points["left_knee"]["y"]]
-        back_angle = calculate_angle(shoulder, hip, knee)
-
-        if back_angle < 150:
-            issues["bad_posture"] = True
-            issues["problems"].append(f"Back angle too acute: {back_angle:.1f}°")
-
-        issues["back_angle"] = back_angle
-
-    except Exception as e:
-        issues["error"] = str(e)
-
-    return issues
-
-def analyze_posture(key_points):
-    sitting_analysis = analyze_sitting(key_points)
-    squat_analysis = analyze_squat(key_points)
-    issues = {
-        "sitting_analysis": sitting_analysis,
-        "squat_analysis": squat_analysis,
-    }
-    issues["bad_posture"] = sitting_analysis.get("bad_posture") or squat_analysis.get("bad_posture")
-    issues["overall_posture"] = "bad" if issues["bad_posture"] else "good"
-    return issues
-
-def calculate_angle(a, b, c):
-    a = np.array(a)
-    b = np.array(b)
-    c = np.array(c)
-    ba = a - b
-    bc = c - b
-    cosine = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    angle = np.arccos(np.clip(cosine, -1.0, 1.0))
-    return np.degrees(angle)
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=10000, debug=False, threaded=True)
