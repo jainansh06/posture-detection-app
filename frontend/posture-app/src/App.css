@@ -1,475 +1,206 @@
-/* App.css */
-.App {
-  text-align: center;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-.App-header {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  padding: 20px;
-  margin-bottom: 30px;
-  border-radius: 20px;
-  margin: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-.App-header h1 {
-  color: white;
-  margin: 0 0 10px 0;
-  font-size: 2.5rem;
-  font-weight: 700;
-}
-
-.App-header p {
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.backend-status {
-  margin-top: 15px;
-  padding: 10px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-weight: 500;
-}
-
-.status-checking {
-  color: #ffd700;
-}
-
-.status-connected {
-  color: #4caf50;
-}
-
-.status-disconnected {
-  color: #f44336;
-}
-
-.main-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.upload-section {
-  background: rgba(255, 255, 255, 0.95);
-  padding: 30px;
-  border-radius: 20px;
-  margin-bottom: 30px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-.input-mode-selector,
-.analysis-type-selector,
-.posture-type-selector {
-  margin-bottom: 25px;
-  padding: 20px;
-  border: 2px solid #e0e0e0;
-  border-radius: 15px;
-  background: #f9f9f9;
-}
-
-.input-mode-selector h4,
-.analysis-type-selector h4,
-.posture-type-selector h4 {
-  margin: 0 0 15px 0;
-  color: #333;
-  font-size: 1.2rem;
-}
-
-.input-mode-selector label,
-.analysis-type-selector label,
-.posture-type-selector label {
-  display: inline-block;
-  margin: 0 20px 10px 0;
-  padding: 10px 20px;
-  background: white;
-  border: 2px solid #ddd;
-  border-radius: 25px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.input-mode-selector label:hover,
-.analysis-type-selector label:hover,
-.posture-type-selector label:hover {
-  background: #f0f0f0;
-  transform: translateY(-2px);
-}
-
-.input-mode-selector input[type="radio"]:checked + label,
-.analysis-type-selector input[type="radio"]:checked + label,
-.posture-type-selector input[type="radio"]:checked + label {
-  background: #667eea;
-  color: white;
-  border-color: #667eea;
-}
-
-.input-mode-selector input[type="radio"],
-.analysis-type-selector input[type="radio"],
-.posture-type-selector input[type="radio"] {
-  display: none;
-}
-
-.file-upload {
-  margin-bottom: 25px;
-  padding: 20px;
-  border: 2px dashed #ddd;
-  border-radius: 15px;
-  background: #fafafa;
-}
-
-.file-input {
-  width: 100%;
-  padding: 15px;
-  border: 2px solid #ddd;
-  border-radius: 10px;
-  font-size: 1rem;
-  background: white;
-  cursor: pointer;
-}
-
-.file-input:hover {
-  border-color: #667eea;
-}
-
-.file-info {
-  margin-top: 15px;
-  padding: 15px;
-  background: rgba(102, 126, 234, 0.1);
-  border-radius: 10px;
-  text-align: left;
-}
-
-.file-info p {
-  margin: 5px 0;
-  color: #333;
-}
-
-.webcam-section {
-  margin-bottom: 25px;
-  padding: 20px;
-  border: 2px solid #e0e0e0;
-  border-radius: 15px;
-  background: #f9f9f9;
-}
-
-.webcam-toggle-button {
-  background: #667eea;
-  color: white;
-  border: none;
-  padding: 15px 30px;
-  border-radius: 25px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 20px;
-}
-
-.webcam-toggle-button:hover {
-  background: #5a6fd8;
-  transform: translateY(-2px);
-}
-
-.webcam-container {
-  margin-top: 20px;
-}
-
-.webcam-feed {
-  width: 100%;
-  max-width: 640px;
-  height: auto;
-  border-radius: 15px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.webcam-instructions {
-  margin-top: 15px;
-  color: #666;
-  font-style: italic;
-}
-
-.analyze-button {
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  padding: 20px 40px;
-  border-radius: 30px;
-  font-size: 1.2rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.analyze-button:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
-}
-
-.analyze-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.error-message {
-  background: rgba(244, 67, 54, 0.1);
-  border: 2px solid #f44336;
-  border-radius: 15px;
-  padding: 20px;
-  margin-bottom: 25px;
-  text-align: left;
-}
-
-.error-message h4 {
-  color: #f44336;
-  margin: 0 0 10px 0;
-}
-
-.error-message p {
-  color: #d32f2f;
-  margin: 0;
-}
-
-.results-container {
-  background: rgba(255, 255, 255, 0.95);
-  padding: 30px;
-  border-radius: 20px;
-  margin-bottom: 30px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  text-align: left;
-}
-
-.results-container h3 {
-  color: #333;
-  margin: 0 0 20px 0;
-  font-size: 1.8rem;
-  text-align: center;
-}
-
-.specified-posture {
-  text-align: center;
-  margin-bottom: 20px;
-  padding: 15px;
-  background: rgba(102, 126, 234, 0.1);
-  border-radius: 10px;
-}
-
-.posture-type {
-  color: #667eea;
-  font-weight: 700;
-}
-
-.posture-status {
-  text-align: center;
-  margin-bottom: 25px;
-  padding: 20px;
-  border-radius: 15px;
-  background: #f9f9f9;
-}
-
-.posture-status h4 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.posture-status .good {
-  color: #4caf50;
-  font-weight: 700;
-}
-
-.posture-status .bad {
-  color: #f44336;
-  font-weight: 700;
-}
-
-.issues {
-  margin-top: 20px;
-  padding: 20px;
-  background: rgba(244, 67, 54, 0.1);
-  border-radius: 10px;
-}
-
-.issues h5 {
-  color: #f44336;
-  margin: 0 0 15px 0;
-  font-size: 1.2rem;
-}
-
-.issues ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.issues li {
-  color: #d32f2f;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.analysis-details {
-  margin-top: 20px;
-  padding: 20px;
-  background: rgba(76, 175, 80, 0.1);
-  border-radius: 10px;
-}
-
-.analysis-details p {
-  color: #4caf50;
-  margin: 0 0 15px 0;
-  font-weight: 600;
-}
-
-.analysis-details h5 {
-  color: #388e3c;
-  margin: 0 0 15px 0;
-  font-size: 1.1rem;
-}
-
-.analysis-details ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.analysis-details li {
-  color: #2e7d32;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.video-summary {
-  margin-bottom: 25px;
-  padding: 20px;
-  background: #f9f9f9;
-  border-radius: 15px;
-}
-
-.video-summary h4 {
-  color: #333;
-  margin: 0 0 15px 0;
-  font-size: 1.3rem;
-}
-
-.video-summary p {
-  margin: 8px 0;
-  color: #555;
-  font-size: 1rem;
-}
-
-.video-summary .good {
-  color: #4caf50;
-  font-weight: 700;
-}
-
-.video-summary .bad {
-  color: #f44336;
-  font-weight: 700;
-}
-
-.main-issues {
-  margin-top: 20px;
-  padding: 20px;
-  background: rgba(255, 193, 7, 0.1);
-  border-radius: 10px;
-}
-
-.main-issues h4 {
-  color: #f57c00;
-  margin: 0 0 15px 0;
-  font-size: 1.2rem;
-}
-
-.main-issues ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.main-issues li {
-  color: #ef6c00;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .App-header {
-    margin: 10px;
-    padding: 15px;
+@layer base {
+  * {
+    @apply transition-colors duration-300;
   }
   
-  .App-header h1 {
-    font-size: 2rem;
+  body {
+    @apply font-sans antialiased;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/20 backdrop-blur-lg border border-white/30 rounded-2xl shadow-xl;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   }
   
-  .main-content {
-    padding: 0 10px;
+  .animated-gradient {
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
   }
   
-  .upload-section {
-    padding: 20px;
+  .hover-lift {
+    @apply transition-all duration-300 ease-out;
   }
   
-  .input-mode-selector label,
-  .analysis-type-selector label,
-  .posture-type-selector label {
-    display: block;
-    margin: 0 0 10px 0;
-    text-align: center;
+  .hover-lift:hover {
+    @apply -translate-y-2 shadow-2xl;
   }
   
-  .analyze-button {
+  .text-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .floating-element {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .pulse-border {
+    @apply relative;
+  }
+  
+  .pulse-border::before {
+    content: '';
+    @apply absolute inset-0 rounded-2xl;
+    background: linear-gradient(45deg, #667eea, #764ba2, #667eea);
+    background-size: 200% 200%;
+    animation: pulse-border 3s linear infinite;
+    z-index: -1;
+    padding: 2px;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+  }
+  
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .shimmer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
     width: 100%;
-    padding: 15px 20px;
-    font-size: 1rem;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 2s infinite;
   }
   
-  .webcam-feed {
-    max-width: 100%;
+  .smooth-scroll {
+    scroll-behavior: smooth;
   }
   
-  .results-container {
-    padding: 20px;
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-full;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 rounded-full;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
   }
 }
 
-@media (max-width: 480px) {
-  .App-header h1 {
-    font-size: 1.5rem;
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-border {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
   }
-  
-  .App-header p {
-    font-size: 1rem;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .input-mode-selector,
-  .analysis-type-selector,
-  .posture-type-selector {
-    padding: 15px;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
   }
-  
-  .file-upload {
-    padding: 15px;
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
-  
-  .webcam-section {
-    padding: 15px;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
   }
-  
-  .results-container h3 {
-    font-size: 1.5rem;
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.8s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.6s ease-out;
+}
+
+/* Advanced hover effects */
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+}
+
+.hover-rotate:hover {
+  transform: rotate(5deg);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* Typography improvements */
+.title-text {
+  @apply text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+}
+
+.subtitle-text {
+  @apply text-lg md:text-xl text-gray-600 font-medium;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105;
+}
+
+.btn-secondary {
+  @apply px-8 py-4 bg-white/20 backdrop-blur-sm border border-white/30 text-gray-700 rounded-xl font-semibold hover:bg-white/30 transition-all duration-300;
+}
+
+/* Card styles */
+.card-modern {
+  @apply bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 border border-gray-100;
+}
+
+.card-glassmorphism {
+  @apply bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-xl;
 }
