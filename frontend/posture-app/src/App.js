@@ -1,12 +1,9 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import axios from 'axios';
-import { Upload } from 'lucide-react';
+import './App.css';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 
-  (process.env.NODE_ENV === 'production' 
-    ? 'https://posture-detection-app-3ih3.onrender.com' 
-    : 'http://localhost:5000');
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -18,43 +15,30 @@ function App() {
   const [error, setError] = useState(null);
   const [webcamActive, setWebcamActive] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking');
-  const [uploadedVideo, setUploadedVideo] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
   const fileInputRef = useRef(null);
   const webcamRef = useRef(null);
 
   useEffect(() => {
-    const testBackendConnection = async () => {
+    const checkBackend = async () => {
       try {
         setBackendStatus('checking');
-        const response = await axios.get(`${API_BASE_URL}/`, {
-          timeout: 10000,
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
+        await axios.get(`${API_BASE_URL}/`);
         setBackendStatus('connected');
-        console.log('Backend connection successful:', response.data);
       } catch (err) {
         setBackendStatus('disconnected');
-        console.error('Backend connection failed:', err.message);
-        
-        if (err.code === 'ECONNABORTED') {
-          console.error('Request timed out - backend might be starting up');
-        } else if (err.code === 'ERR_NETWORK') {
-          console.error('Network error - check if backend is running');
-        }
+        console.error('Backend connection failed:', err);
       }
     };
 
-    testBackendConnection();
+    checkBackend();
   }, []);
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        setError('File size too large. Please select a file smaller than 10MB.');
+        setError('File too large. Please select a file smaller than 10MB.');
         return;
       }
 
@@ -62,12 +46,12 @@ function App() {
       const isVideo = file.type.startsWith('video/');
 
       if (analysisType === 'image' && !isImage) {
-        setError('Please select an image file for image analysis');
+        setError('Please select an image file');
         return;
       }
 
       if (analysisType === 'video' && !isVideo) {
-        setError('Please select a video file for video analysis');
+        setError('Please select a video file');
         return;
       }
 
@@ -82,7 +66,6 @@ function App() {
     setSelectedFile(null);
     setResults(null);
     setError(null);
-    setUploadedVideo(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -100,15 +83,8 @@ function App() {
     formData.append('posture_type', postureType);
 
     const response = await axios.post(`${API_BASE_URL}/analyze_pose`, formData, {
-      headers: { 
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 30000,
-      withCredentials: false,
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        console.log(`Upload Progress: ${percentCompleted}%`);
-      }
     });
     return response.data;
   }, [postureType]);
@@ -119,15 +95,8 @@ function App() {
     formData.append('posture_type', postureType);
 
     const response = await axios.post(`${API_BASE_URL}/analyze_video`, formData, {
-      headers: { 
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 120000,
-      withCredentials: false,
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        console.log(`Upload Progress: ${percentCompleted}%`);
-      }
     });
     return response.data;
   }, [postureType]);
@@ -140,7 +109,7 @@ function App() {
 
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) {
-      setError('Failed to capture image from webcam');
+      setError('Failed to capture image');
       return;
     }
 
@@ -155,32 +124,12 @@ function App() {
       const result = await analyzeImage(file);
       setResults(result);
     } catch (err) {
-      console.error('Capture and analyze error:', err);
-      setError(getErrorMessage(err));
+      console.error('Error:', err);
+      setError('Analysis failed. Please try again.');
     } finally {
       setLoading(false);
     }
   }, [analyzeImage]);
-
-  const getErrorMessage = (err) => {
-    if (err.response?.data?.error) {
-      return err.response.data.error;
-    }
-
-    if (err.code === 'ECONNABORTED') {
-      return 'Request timed out. Please try again.';
-    }
-
-    if (err.code === 'ERR_NETWORK') {
-      return 'Network error. Please check your connection and ensure the backend is running.';
-    }
-
-    if (err.message) {
-      return err.message;
-    }
-
-    return 'Analysis failed. Please try again.';
-  };
 
   const handleAnalyze = async () => {
     if (backendStatus === 'disconnected') {
@@ -208,8 +157,8 @@ function App() {
         : await analyzeVideo(selectedFile);
       setResults(result);
     } catch (err) {
-      console.error('Analysis error:', err);
-      setError(getErrorMessage(err));
+      console.error('Error:', err);
+      setError('Analysis failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -221,50 +170,89 @@ function App() {
     setError(null);
   };
 
-  const handleVideoUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setUploadedVideo(file);
-    }
-  };
-
-  const analyzeUploadedVideo = async () => {
-    if (!uploadedVideo) return;
-
-    setIsAnalyzing(true);
-    const formData = new FormData();
-    formData.append('video', uploadedVideo);
-    formData.append('posture_type', postureType);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/analyze_video`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Analysis result:', result);
-        setResults(result);
-        setError(null);
-      } else {
-        console.error('Upload failed');
-        setError('Video upload failed.');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setError('An error occurred during video analysis.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   const renderImageResults = (results) => {
-    // unchanged
+    if (!results.success) {
+      return (
+        <div className="error-message">
+          <h4>Analysis Failed</h4>
+          <p>{results.error || 'Unknown error occurred'}</p>
+        </div>
+      );
+    }
+
+    if (!results.landmarks_detected) {
+      return (
+        <div className="results-section">
+          <h3>Analysis Results</h3>
+          <p>No person detected in the image. Please try a different image.</p>
+        </div>
+      );
+    }
+
+    const analysis = results.analysis;
+    
+    return (
+      <div className="results-section">
+        <h3>Posture Analysis Results</h3>
+        <div className={`posture-status ${analysis.bad_posture ? 'bad' : 'good'}`}>
+          <h4>Overall Status: {analysis.bad_posture ? 'Poor Posture' : 'Good Posture'}</h4>
+        </div>
+        
+        {analysis.problems && analysis.problems.length > 0 && (
+          <div className="problems-list">
+            <h4>Issues Found:</h4>
+            <ul>
+              {analysis.problems.map((problem, index) => (
+                <li key={index}>{problem}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {analysis.knee_angle && (
+          <div className="angle-info">
+            <p><strong>Knee Angle:</strong> {analysis.knee_angle.toFixed(1)}°</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const renderVideoResults = (results) => {
-    // unchanged
+    if (!results.analyzed_frames || results.analyzed_frames === 0) {
+      return (
+        <div className="results-section">
+          <h3>Video Analysis Results</h3>
+          <p>No frames could be analyzed. Please try a different video.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="results-section">
+        <h3>Video Analysis Results</h3>
+        <div className="video-stats">
+          <p><strong>Total Frames:</strong> {results.total_frames}</p>
+          <p><strong>Analyzed Frames:</strong> {results.analyzed_frames}</p>
+          <p><strong>Bad Posture:</strong> {results.bad_posture_percentage}%</p>
+        </div>
+        
+        <div className={`overall-rating ${results.summary.overall_rating === 'Good' ? 'good' : 'bad'}`}>
+          <h4>Overall Rating: {results.summary.overall_rating}</h4>
+        </div>
+
+        {results.summary.main_issues && results.summary.main_issues.length > 0 && (
+          <div className="main-issues">
+            <h4>Main Issues:</h4>
+            <ul>
+              {results.summary.main_issues.map(([issue, count], index) => (
+                <li key={index}>{issue} ({count} times)</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -285,7 +273,7 @@ function App() {
       <main className="main-content">
         <div className="upload-section">
           <div className="input-mode-selector">
-                       <label>
+            <label>
               <input
                 type="radio"
                 value="upload"
@@ -348,43 +336,11 @@ function App() {
             </label>
           </div>
 
-          {inputMode === 'upload' && analysisType === 'video' && (
-            <div className="mb-6 p-4 border-2 border-dashed border-gray-300 rounded-lg">
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleVideoUpload}
-                className="hidden"
-                id="video-upload"
-              />
-              <label
-                htmlFor="video-upload"
-                className="cursor-pointer flex flex-col items-center justify-center py-4"
-              >
-                <Upload className="w-12 h-12 text-gray-400 mb-2" />
-                <span className="text-gray-600">Click to upload video</span>
-              </label>
-
-              {uploadedVideo && (
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600 mb-2">Uploaded: {uploadedVideo.name}</p>
-                  <button
-                    onClick={analyzeUploadedVideo}
-                    disabled={isAnalyzing}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
-                  >
-                    {isAnalyzing ? 'Analyzing...' : 'Analyze Video'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {inputMode === 'upload' && analysisType === 'image' && (
+          {inputMode === 'upload' && (
             <div className="file-upload">
               <input
                 type="file"
-                accept="image/*"
+                accept={analysisType === 'image' ? 'image/*' : 'video/*'}
                 onChange={handleFileSelect}
                 ref={fileInputRef}
                 className="file-input"
@@ -439,7 +395,7 @@ function App() {
             disabled={
               loading || 
               backendStatus === 'disconnected' ||
-              (inputMode === 'upload' && analysisType === 'image' && !selectedFile) || 
+              (inputMode === 'upload' && !selectedFile) || 
               (inputMode === 'webcam' && !webcamActive)
             }
             type="button"
@@ -466,4 +422,3 @@ function App() {
 }
 
 export default App;
-
