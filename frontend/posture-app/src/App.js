@@ -161,6 +161,11 @@ function App() {
       );
     }
 
+useEffect(() => {
+  console.log("Posture Analysis Results:", results);
+}, [results]);
+
+
     return (
       <div className="results-container">
         <h3>Analysis Results</h3>
