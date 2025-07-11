@@ -43,7 +43,7 @@
 
 1. **Clone the repository:**
     ```bash
-    git clone [your-repo-url]
+    git clone [https://github.com/jainansh06/posture-detection-app.git](https://github.com/jainansh06/posture-detection-app.git)]
     cd posture-detection-app
     ```
 
