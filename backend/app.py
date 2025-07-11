@@ -25,7 +25,7 @@ def calculate_angle(point1, point2, point3):
     c = np.array(point3)
     ba = a - b
     bc = c - b
-    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc)) # cosine of angle using dot product 
     angle = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
     return np.degrees(angle)
 
@@ -34,7 +34,7 @@ def home():
     return "Flask backend is running correctly."
 
 
-@app.route('/analyze_pose', methods=['POST'])
+@app.route('/analyze_pose', methods=['POST']) #Main endpoint for analyzing posture from uploaded images
 def analyze_pose():
     try:
         if 'image' not in request.files:
@@ -80,7 +80,7 @@ def analyze_pose():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/analyze_video', methods=['POST'])
+@app.route('/analyze_video', methods=['POST']) # Endpoint for analyzing posture from uploaded video files
 def analyze_video():
     try:
         if 'video' not in request.files:
@@ -135,7 +135,7 @@ def process_video(video_path):
     total_analyzed_frames = len(frame_results)
     bad_posture_percentage = (bad_posture_count / total_analyzed_frames * 100) if total_analyzed_frames > 0 else 0
 
-    return {
+    return { #analysis results
         'success': True,
         'total_frames': frame_count,
         'analyzed_frames': total_analyzed_frames,
@@ -148,7 +148,7 @@ def process_video(video_path):
         }
     }
 
-def get_main_issues(frame_results):
+def get_main_issues(frame_results): #Analyze frame results to identify the most common posture problems
     issues = {}
     for frame in frame_results:
         sitting_problems = frame['analysis']['sitting_analysis'].get('problems', [])
@@ -157,9 +157,9 @@ def get_main_issues(frame_results):
             issues[problem] = issues.get(problem, 0) + 1
     return sorted(issues.items(), key=lambda x: x[1], reverse=True)[:3]
 
-def extract_key_points(landmarks):
+def extract_key_points(landmarks): # Extract key points needed for posture analysis.
     key_points = {}
-    landmark_indices = {
+    landmark_indices = { #correspond to specific body parts in MediaPipe's pose model
         'nose': 0,
         'left_shoulder': 11,
         'right_shoulder': 12,
@@ -180,7 +180,7 @@ def extract_key_points(landmarks):
         }
     return key_points
 
-def analyze_posture(key_points):
+def analyze_posture(key_points): #posture analysis for both sitting and squat positions
     analysis = {
         'squat_analysis': {},
         'sitting_analysis': {},
@@ -250,7 +250,7 @@ def analyze_sitting(key_points):
     return issues
 
 @app.route('/health', methods=['GET'])
-def health_check():
+def health_check(): #Health check endpoint for monitoring and deployment verification
     return jsonify({'status': 'healthy'})
 
 if __name__ == '__main__':
