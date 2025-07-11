@@ -8,8 +8,11 @@ import os
 import gc
 import math
 
-app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://posture-detection-app-dun.vercel.app"}})
+CORS(app, origins=[
+    "https://posture-detection-app-dun.vercel.app",
+    "http://localhost:3000",  # for local development
+    "http://localhost:3001"   # backup local port
+])
 
 mp_pose = mp.solutions.pose
 
