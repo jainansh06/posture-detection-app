@@ -1,16 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import axios from 'axios';
-import './App.css';
 
-// Updated API URL configuration
+// Improved API URL configuration with better error handling
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://posture-detection-app-3ih3.onrender.com' 
+    ? 'https://your-backend-url.render.com' 
     : 'http://localhost:5000');
-
-console.log('Environment:', process.env.NODE_ENV);
-console.log('API_BASE_URL being used:', API_BASE_URL);
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -21,25 +17,31 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [webcamActive, setWebcamActive] = useState(false);
+  const [backendStatus, setBackendStatus] = useState('checking');
   const fileInputRef = useRef(null);
   const webcamRef = useRef(null);
 
-  // Test backend connection on component mount
+  // Enhanced backend connection test
   useEffect(() => {
     const testBackendConnection = async () => {
       try {
-        console.log('Testing backend connection...');
+        setBackendStatus('checking');
         const response = await axios.get(`${API_BASE_URL}/`, {
           timeout: 10000,
           headers: {
             'Content-Type': 'application/json',
           }
         });
+        setBackendStatus('connected');
         console.log('Backend connection successful:', response.data);
       } catch (err) {
+        setBackendStatus('disconnected');
         console.error('Backend connection failed:', err.message);
+        
         if (err.code === 'ECONNABORTED') {
           console.error('Request timed out - backend might be starting up');
+        } else if (err.code === 'ERR_NETWORK') {
+          console.error('Network error - check if backend is running');
         }
       }
     };
@@ -47,14 +49,33 @@ function App() {
     testBackendConnection();
   }, []);
 
-  useEffect(() => {
-    console.log("Posture Analysis Results:", results);
-  }, [results]);
-
   const handleFileSelect = (event) => {
-    setSelectedFile(event.target.files[0]);
-    setResults(null);
-    setError(null);
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('File size too large. Please select a file smaller than 10MB.');
+        return;
+      }
+      
+      // Validate file type
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      
+      if (analysisType === 'image' && !isImage) {
+        setError('Please select an image file for image analysis');
+        return;
+      }
+      
+      if (analysisType === 'video' && !isVideo) {
+        setError('Please select a video file for video analysis');
+        return;
+      }
+      
+      setSelectedFile(file);
+      setResults(null);
+      setError(null);
+    }
   };
 
   const handleAnalysisTypeChange = (event) => {
@@ -78,14 +99,16 @@ function App() {
     formData.append('image', file);
     formData.append('posture_type', postureType);
 
-    console.log('Sending request to:', `${API_BASE_URL}/analyze_pose`);
-    
     const response = await axios.post(`${API_BASE_URL}/analyze_pose`, formData, {
       headers: { 
         'Content-Type': 'multipart/form-data',
       },
-      timeout: 30000, // 30 second timeout
-      withCredentials: false
+      timeout: 30000,
+      withCredentials: false,
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        console.log(`Upload Progress: ${percentCompleted}%`);
+      }
     });
     return response.data;
   };
@@ -95,14 +118,16 @@ function App() {
     formData.append('video', file);
     formData.append('posture_type', postureType);
 
-    console.log('Sending video request to:', `${API_BASE_URL}/analyze_video`);
-    
     const response = await axios.post(`${API_BASE_URL}/analyze_video`, formData, {
       headers: { 
         'Content-Type': 'multipart/form-data',
       },
-      timeout: 60000, // 60 second timeout for video
-      withCredentials: false
+      timeout: 120000, // Extended timeout for video processing
+      withCredentials: false,
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        console.log(`Upload Progress: ${percentCompleted}%`);
+      }
     });
     return response.data;
   };
@@ -131,27 +156,38 @@ function App() {
       setResults(result);
     } catch (err) {
       console.error('Capture and analyze error:', err);
-      let errorMessage = 'Analysis failed';
-      
-      if (err.response?.data?.error) {
-        errorMessage = err.response.data.error;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      if (err.code === 'ECONNABORTED') {
-        errorMessage = 'Request timed out. Backend might be starting up, please try again.';
-      } else if (err.code === 'ERR_NETWORK') {
-        errorMessage = 'Network error. Please check your internet connection.';
-      }
-      
-      setError(errorMessage);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   }, [postureType]);
 
+  const getErrorMessage = (err) => {
+    if (err.response?.data?.error) {
+      return err.response.data.error;
+    }
+    
+    if (err.code === 'ECONNABORTED') {
+      return 'Request timed out. Please try again.';
+    }
+    
+    if (err.code === 'ERR_NETWORK') {
+      return 'Network error. Please check your connection and ensure the backend is running.';
+    }
+    
+    if (err.message) {
+      return err.message;
+    }
+    
+    return 'Analysis failed. Please try again.';
+  };
+
   const handleAnalyze = async () => {
+    if (backendStatus === 'disconnected') {
+      setError('Backend is not connected. Please check if the server is running.');
+      return;
+    }
+
     if (inputMode === 'webcam') {
       await captureAndAnalyze();
       return;
@@ -159,19 +195,6 @@ function App() {
 
     if (!selectedFile) {
       setError('Please select a file first');
-      return;
-    }
-
-    const isImage = selectedFile.type.startsWith('image/');
-    const isVideo = selectedFile.type.startsWith('video/');
-
-    if (analysisType === 'image' && !isImage) {
-      setError('Please select an image file for image analysis');
-      return;
-    }
-
-    if (analysisType === 'video' && !isVideo) {
-      setError('Please select a video file for video analysis');
       return;
     }
 
@@ -186,21 +209,7 @@ function App() {
       setResults(result);
     } catch (err) {
       console.error('Analysis error:', err);
-      let errorMessage = 'Analysis failed';
-      
-      if (err.response?.data?.error) {
-        errorMessage = err.response.data.error;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      if (err.code === 'ECONNABORTED') {
-        errorMessage = 'Request timed out. Backend might be starting up, please try again.';
-      } else if (err.code === 'ERR_NETWORK') {
-        errorMessage = 'Network error. Please check your internet connection.';
-      }
-      
-      setError(errorMessage);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -288,7 +297,7 @@ function App() {
         <h3>Video Analysis Results</h3>
         <div className="specified-posture">
           <h4>Analyzing for:
-            <span className="posture-type">{postureType.toUpperCase()} POSTURE</span>
+            <span className="posture-type"> {postureType.toUpperCase()} POSTURE</span>
           </h4>
         </div>
         <div className="video-summary">
@@ -328,7 +337,16 @@ function App() {
       <header className="App-header">
         <h1>Posture Detection App</h1>
         <p>Upload an image/video or use webcam to analyze your posture</p>
+        <div className="backend-status">
+          Status: 
+          <span className={`status-${backendStatus}`}>
+            {backendStatus === 'checking' && ' Checking...'}
+            {backendStatus === 'connected' && ' ✓ Connected'}
+            {backendStatus === 'disconnected' && ' ✗ Disconnected'}
+          </span>
+        </div>
       </header>
+      
       <main className="main-content">
         <div className="upload-section">
           <div className="input-mode-selector">
@@ -339,7 +357,7 @@ function App() {
                 checked={inputMode === 'upload'}
                 onChange={() => setInputMode('upload')}
               />
-              Upload
+              Upload File
             </label>
             <label>
               <input
@@ -348,7 +366,7 @@ function App() {
                 checked={inputMode === 'webcam'}
                 onChange={() => setInputMode('webcam')}
               />
-              Webcam
+              Use Webcam
             </label>
           </div>
 
@@ -360,7 +378,7 @@ function App() {
                 checked={analysisType === 'image'}
                 onChange={handleAnalysisTypeChange}
               />
-              Image
+              Image Analysis
             </label>
             <label>
               <input
@@ -369,7 +387,7 @@ function App() {
                 checked={analysisType === 'video'}
                 onChange={handleAnalysisTypeChange}
               />
-              Video
+              Video Analysis
             </label>
           </div>
 
@@ -382,7 +400,7 @@ function App() {
                 checked={postureType === 'sitting'}
                 onChange={handlePostureTypeChange}
               />
-              Sitting
+              Sitting Posture
             </label>
             <label>
               <input
@@ -391,7 +409,7 @@ function App() {
                 checked={postureType === 'squat'}
                 onChange={handlePostureTypeChange}
               />
-              Squat
+              Squat Posture
             </label>
           </div>
 
@@ -406,9 +424,9 @@ function App() {
               />
               {selectedFile && (
                 <div className="file-info">
-                  <p>Selected: {selectedFile.name}</p>
-                  <p>Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                  <p>Type: {selectedFile.type}</p>
+                  <p><strong>Selected:</strong> {selectedFile.name}</p>
+                  <p><strong>Size:</strong> {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p><strong>Type:</strong> {selectedFile.type}</p>
                 </div>
               )}
             </div>
@@ -419,6 +437,7 @@ function App() {
               <button
                 onClick={toggleWebcam}
                 className="webcam-toggle-button"
+                type="button"
               >
                 {webcamActive ? 'Stop Webcam' : 'Start Webcam'}
               </button>
@@ -434,9 +453,13 @@ function App() {
                       height: 480,
                       facingMode: "user"
                     }}
+                    onUserMediaError={(error) => {
+                      console.error('Webcam error:', error);
+                      setError('Failed to access webcam. Please check permissions.');
+                    }}
                   />
                   <p className="webcam-instructions">
-                    Align yourself in front of the webcam for analysis.
+                    Position yourself in front of the webcam for analysis.
                   </p>
                 </div>
               )}
@@ -446,9 +469,15 @@ function App() {
           <button
             onClick={handleAnalyze}
             className="analyze-button"
-            disabled={loading || (inputMode === 'upload' && !selectedFile) || (inputMode === 'webcam' && !webcamActive)}
+            disabled={
+              loading || 
+              backendStatus === 'disconnected' ||
+              (inputMode === 'upload' && !selectedFile) || 
+              (inputMode === 'webcam' && !webcamActive)
+            }
+            type="button"
           >
-            {loading ? 'Analyzing...' : 'Analyze'}
+            {loading ? 'Analyzing...' : 'Analyze Posture'}
           </button>
         </div>
 
