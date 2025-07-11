@@ -43,8 +43,8 @@
 
 1. **Clone the repository:**
     ```bash
-    git clone [https://github.com/jainansh06/posture-detection-app.git](https://github.com/jainansh06/posture-detection-app.git)]
-    cd posture-detection-app
+   git clone https://github.com/jainansh06/posture-detection-app.git
+   cd posture-detection-app
     ```
 
 2. **Navigate to backend directory:**
