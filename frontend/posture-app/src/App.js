@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+
 import { Upload, Camera, Video, User, Activity, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
