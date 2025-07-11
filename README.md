@@ -1,7 +1,7 @@
 # Posture Detection App
 
 **Deployed App:** [https://posture-detection-app-dun.vercel.app](https://posture-detection-app-dun.vercel.app)  
-**Demo Video:** [Insert Link]
+**Demo Video:** [https://youtu.be/nZ2zzf7IOgA](https://youtu.be/nZ2zzf7IOgA)
 
 ## Tech Stack
 
