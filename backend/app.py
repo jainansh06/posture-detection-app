@@ -105,12 +105,18 @@ def extract_key_points(landmarks):
 def analyze_posture(key_points):
     squat_analysis = analyze_squat(key_points)
     sitting_analysis = analyze_sitting(key_points)
-    overall_posture = 'bad' if squat_analysis.get('bad_posture') or sitting_analysis.get('bad_posture') else 'good'
+
+    squat_bad = squat_analysis.get('bad_posture', False)
+    sitting_bad = sitting_analysis.get('bad_posture', False)
+
+    overall_posture = 'bad' if squat_bad or sitting_bad else 'good'
+
     return {
         'squat_analysis': squat_analysis,
         'sitting_analysis': sitting_analysis,
         'overall_posture': overall_posture
     }
+
 
 def analyze_squat(key_points):
     issues = {'bad_posture': False, 'problems': []}
